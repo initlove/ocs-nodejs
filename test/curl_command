@@ -1,0 +1,4 @@
+POST:
+ curl --data "dll" http://localhost:3000/comment/afds
+GET:
+ curl http://localhost:3000/user/dliang

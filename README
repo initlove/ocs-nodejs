@@ -1,1 +1,10 @@
-ocs implement on nodejs
+ocs implement on nodejs.
+
+ocs-nodejs 
+|--public  	--  generate from express, useless if we just provide api service
+|--views  	--  generate from express, useless if we just provide api service
+|--index.js	--  begining
+|--routes	--  TODO
+|--test		--  demo server, can split to several servers(js) for testing
+		 	for example, comment.js, content..
+		    curl_command, the way to test the server.
