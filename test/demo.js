@@ -5,6 +5,7 @@
 
 var express = require('express')
   , routes = require('./routes');
+var mongo = require('mongodb');
 
 var app = module.exports = express.createServer();
 
@@ -27,6 +28,20 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+db = new mongo.Db("test", new mongo.Server('localhost', 27017, {}), {});
+db.open(function() {
+	db.collection("things", function(err, collection) {
+		collection.find(function(err, cursor) {
+			cursor.toArray(function(err, items) {
+				var len = items.length;
+				console.log(len);
+				for (var i = 0; i < len; i++) {
+					console.log(items[i].name);
+				}
+			});
+		});
+	});
+});
 // Routes
 
 app.get('/user/:id', function(req, res){
