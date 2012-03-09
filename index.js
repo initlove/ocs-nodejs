@@ -24,6 +24,7 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+/*
 db = new mongo.Db("test", new mongo.Server('localhost', 27017, {}), {});
 db.open(function() {
 	db.collection("things", function(err, collection) {
@@ -43,6 +44,7 @@ db.open(function() {
 		});
 	});
 });
+*/
 
 app.get('/user/:id', function(req, res){
 	res.send('user ' + req.params.id);

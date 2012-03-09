@@ -1,1 +1,4 @@
+curl bug: shit!
+  so I use rest params
+
 curl "http://localhost:3000/comments/get&type=1&content=c1001&content2=c2"

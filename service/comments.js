@@ -20,13 +20,14 @@ exports.get = function (req, res){
 			var len = items.length;
 			var ret;
 			if (len==0) {
-				ret = "{status:\"no item\", statuscode:100}";
+				ret = "{status:\"no item\", statuscode:100}\n";
 				res.send(ret);
 			} else {
-				for (var i=0; i< len; i++) {
-					console.log(items[i].content, items[i].subject);
-				}
+				//TODO
 				ret = "{status:\"ok\", statuscode:100}";
+				for (var i=0; i< len; i++) {
+					ret = ret + "subject : " + items[i].subject + "\tmessage : " + items[i].message + "\n";
+				}
 				res.send(ret);
 			}
 		});
