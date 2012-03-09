@@ -3,8 +3,8 @@
  * Module dependencies.
  */
 
+var comments = require('./service/comments');
 var express = require('express')
-  , routes = require('./routes');
 var mongo = require('mongodb');
 
 var app = module.exports = express.createServer();
@@ -12,12 +12,8 @@ var app = module.exports = express.createServer();
 // Configuration
 
 app.configure(function(){
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
   app.use(express.bodyParser());
   app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(__dirname + '/public'));
 });
 
 app.configure('development', function(){
@@ -36,23 +32,25 @@ db.open(function() {
 				var len = items.length;
 				console.log(len);
 				for (var i = 0; i < len; i++) {
-					console.log(items[i].name);
+					console.log("type "+ items[i].type);
+					console.log("parent " + items[i].parent);
+					console.log("content "+ items[i].content);
+					console.log("content2 "+ items[i].content2);
+					console.log("subject "+ items[i].subject);
+					console.log("message "+ items[i].message);
 				}
 			});
 		});
 	});
 });
-// Routes
 
 app.get('/user/:id', function(req, res){
 	res.send('user ' + req.params.id);
 });
 
-app.post('/comment/:id', function(req, res){
-	res.send('comment dldld');
-});
-
-app.get('/', routes.index);
+app.get('/comments/get', comments.get);
+app.post('/comments/add', comments.add);
+app.post('/comments/vote', comments.vote);
 
 app.listen(3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);

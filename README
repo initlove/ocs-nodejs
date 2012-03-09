@@ -1,10 +1,13 @@
 ocs implement on nodejs.
 
 ocs-nodejs 
-|--public  	--  generate from express, useless if we just provide api service
-|--views  	--  generate from express, useless if we just provide api service
 |--index.js	--  begining
-|--routes	--  TODO
+|--service	--  all services defined
 |--test		--  demo server, can split to several servers(js) for testing
 		 	for example, comment.js, content..
 		    curl_command, the way to test the server.
+
+POST:
+ curl --data "name=dliang&homepage=initlove" http://localhost:3000/comment/search?test
+GET:
+ curl http://localhost:3000/user/dliang

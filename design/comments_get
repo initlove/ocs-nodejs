@@ -1,0 +1,47 @@
+get
+	/v1/comments/data/:type/:contentid/:contentid2
+	method: GET
+	type:  id of the content entry
+			1 - content; 4 - forum; 7 - knowledgebase; 8 - event
+	contentid: id of the content, in the database, we use content
+	contentid2: ?? no idea, in the database we use contentid2
+	page:	the list page, start with 0
+	pagesize: size of the page
+
+I change it to 
+	/comments&type=x&contentid=x&contentid2=&page=0&pagesize=10
+
+return value, in json.
+
+	{
+		{"meta" :
+			{
+				"status" : "ok",
+				"statuscode" : "100",
+				"message" : "ok",
+				"totalitem" : 10
+			}
+		},
+		{"data" :
+			[
+				{"id" 	  	: 1243,
+				 "subject"	: "subjectdemo",
+				 "text"  	: "content demo",
+				 "childcount"   : 0,
+				 "user"		: "initlove",
+				 "date"		: "2012-01-12",
+				 "score"	: 50
+			],
+			[
+				{"id" 	  	: 1244,
+				 "subject"	: "subjectdemo1",
+				 "text"  	: "content demo1",
+				 "childcount"   : 0,
+				 "user"		: "initlove1",
+				 "date"		: "2012-01-12",
+				 "score"	: 50
+			]
+		}
+	}
+
+
