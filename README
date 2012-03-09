@@ -1,11 +1,14 @@
 ocs implement on nodejs.
 
 ocs-nodejs 
+|--sh		--  the bash used to test every implement and init the database
+|--design	--  the design of each service
 |--index.js	--  begining
-|--service	--  all services defined
+|--service	--  all services implementation
 |--test		--  demo server, can split to several servers(js) for testing
-		 	for example, comment.js, content..
-		    curl_command, the way to test the server.
+|		 	for example, comment.js, content..
+|		    curl_command, the way to test the server.
+|--third-party  --  mongodb for linux32, because it's very slow to download it from the server
 
 POST:
  curl --data "name=dliang&homepage=initlove" http://localhost:3000/comment/search?test
