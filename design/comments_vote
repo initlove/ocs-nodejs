@@ -1,0 +1,28 @@
+Syntax: v1/comments/vote
+
+HTTP Method: POST
+Arguments: commentid -- id of a comment
+Arguments: score 
+
+Result: status json
+100 - successful
+101 - comment not found
+102 - score is invalid
+103 - you have already voted on this comment
+200 - too many API requests in the last minutes from your IP address. please try again later.
+
+Relevent tables:
+
+table:  votes
+
+commentid:  id of the comment
+personid:   auth person, vote once; guest, no auth
+            record by system
+score:      0--100, int
+date:       record by system
+
+table:  summary
+
+commentid:  id of the comment
+score:      score
+count:     total votes
