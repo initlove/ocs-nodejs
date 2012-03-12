@@ -1,0 +1,31 @@
+Syntax: v1/comments/add
+HTTP Method: POST
+Arguments: type - type of comment
+Arguments: content - the content id where the comment belongs
+Arguments: content2 - the sub content id where the comment belongs
+Arguments: parent - the id of the parent comment if the new comment is a reply
+Arguments: subject - the subject of the comment
+Arguments: message - the message text of the comment 
+
+Types:
+    1 - content 		
+    4 - forum
+    7 - knowledgebase
+    8 - event 
+
+Result: status json
+100 - successful
+101 - content must not be empty
+102 - message or subject must not be empty
+103 - no permission to add a comment 
+104 - wrong type
+105 - content invalid
+
+content:  for example, id of the app
+		check if valid
+content2: TODO? what is this?
+parent:	    
+		check if valid
+subject: can be null in my idea
+message: 
+		check if not empty
