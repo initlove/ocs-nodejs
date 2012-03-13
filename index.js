@@ -3,6 +3,7 @@
  * Module dependencies.
  */
 
+var content = require('./service/content');
 var comments = require('./service/comments');
 var express = require('express')
 
@@ -22,6 +23,7 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+app.get('/content/categories', content.categories);
 app.get('/comments/get', comments.get);
 app.post('/comments/add', comments.add);
 app.post('/comments/vote', comments.vote);

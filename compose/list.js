@@ -5,7 +5,7 @@ var server = require('mongodb').Server;
 
 var client = new db('test', new server('127.0.0.1', 27017, {}));
 
-var list_all = function (err, collection) {
+list_all = function (err, collection) {
     collection.find().toArray(function(err, results) {
         console.log (results);
     });

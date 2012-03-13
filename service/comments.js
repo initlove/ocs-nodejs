@@ -144,14 +144,14 @@ vote_comment = function (req, res) {
             $('test.comments').find({"commentid" : req.body["commentid"]},
                 function (r) {
                     $('test.comments').update({"commentid" : req.body["commentid"]},
-                        {"commentid", r.documents[0].commentid,
-                        "type", r.documents[0].type,
-                        "content", r.documents[0].content,
+                        {"commentid": r.documents[0].commentid,
+                        "type": r.documents[0].type,
+                        "content": r.documents[0].content,
                         /*  "content2", r.documents[0].content2, */
-                        "parent", r.documents[0].parent,
+                        "parent": r.documents[0].parent,
                         /*  "subject", r.documents[0].subject,  */
-                        "message", r.documents[0].message,
-                        "score", score});
+                        "message": r.documents[0].message,
+                        "score": score});
                 });
         });
     res.send (utils.message (utils.meta (100)));
