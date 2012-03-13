@@ -5,11 +5,23 @@ var server = require('mongodb').Server;
 
 var client = new db('test', new server('127.0.0.1', 27017, {}));
 
-list_category = function (err, collection) {
-};  
+exports.get = function (req, res) {
+    client.open(function(err, client) {
+        client.collection('content', 
+            function (err, collection) {
+                collection.find({"id" : req.params.contentid}).toArray(function(err, results) {
+                if (results.length == 0) {
+                    res.send (utils.message (utils.meta(101, "content not found")));
+                } else {
+                    res.send (utils.message (utils.meta (100), JSON.stringify(results[0])));
+                }
+            }); 
+        });
+    });
+};
 
 exports.categories = function (req, res) {
-    client.open(function(err, Client) {
+    client.open(function(err, client) {
         client.collection('category', 
             function (err, collection) {
                 collection.find().toArray(function(err, results) {

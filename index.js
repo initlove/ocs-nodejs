@@ -24,6 +24,7 @@ app.configure('production', function(){
 });
 
 app.get('/content/categories', content.categories);
+app.get('/content/data/:contentid', content.get);
 app.get('/comments/get', comments.get);
 app.post('/comments/add', comments.add);
 app.post('/comments/vote', comments.vote);
