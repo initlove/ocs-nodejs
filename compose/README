@@ -1,0 +1,8 @@
+compose server: generate the appdata.xml
+
+xml to json     --  TODO should use nodejs, not c
+        but, libxmljs or libxml seems fail to be installed...
+
+push.js: push appdata.json to mongodb
+            test.content
+list.js: list all the database
