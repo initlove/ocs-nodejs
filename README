@@ -1,6 +1,7 @@
 ocs implement on nodejs.
 
 ocs-nodejs 
+|--compose  --  compose server 
 |--sh		--  the bash used to test every implement and init the database
 |--design	--  the design of each service
 |--index.js	--  begining
