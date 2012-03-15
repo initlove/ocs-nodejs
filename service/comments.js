@@ -33,15 +33,16 @@ exports.get = function (req, res){
     client.open(function(err, client) {
         client.collection('comments',
             function (err, collection) {
-                collection.find(query).toArray(function(err, results) {
+                collection.find(query).skip (page*pagesize).limit (pagesize).toArray(function(err, results) {
                     var meta = {"status" : "ok", "statuscode" : 100};
                     var msg = {"meta" : meta};
                     var data = new Array();
                     if (results.length == 0) {
                         res.send (msg);
                     } else {
-                        for (var i = page * pagesize; (i < results.length) && (i < (page + 1) * pagesize); i++) {
-                            data [i - page*pagesize] = results [i];
+                        for (var i = 0; (i < results.length) && (i < pagesize); i++) {
+                            /*TODO: get the useful attr */
+                            data [i] = results [i];
                         }
                         msg.data = data;    
                         res.send (msg);

@@ -23,6 +23,7 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);
 app.get('/comments/get', comments.get);
