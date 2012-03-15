@@ -1,0 +1,2 @@
+curl --data "type=1&content=linguist4.desktop&parent=0&subject=linguissubject&message=linguistmsg001"  http://localhost:3000/comments/add
+curl --data "type=1&content=linguist4.desktop&parent=0&subject=newlinguissubject&message=newlinguistmsg001"  http://localhost:3000/comments/add

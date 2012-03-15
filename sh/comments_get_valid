@@ -1,0 +1,1 @@
+curl 'http://localhost:3000/comments/get?type=1&content=linguist4.desktop'

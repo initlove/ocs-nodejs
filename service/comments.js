@@ -2,9 +2,10 @@
  * Module dependencies.
  */
 
-var $ = require("mongous").Mongous;
+var $ = require("mongous").Mongous; /* seems hung the server, donnot know why */
 var express = require('express')
-var mongo = require('mongodb');
+var db = require('mongodb').Db;
+var server = require('mongodb').Server;
 var url = require('url');
 var utils = require('./utils');
 
@@ -13,7 +14,6 @@ exports.get = function (req, res){
 	var params = part.query;
     var page = 0;
     var pagesize = 10;
-    var json;
 
     if (!check_type (params.type, res))
         return;
@@ -25,13 +25,30 @@ exports.get = function (req, res){
     if (params.pagesize != undefined)
         pagesize = params.pagesize;
 
-	$('test.comments').find(pagesize, page * pagesize, {"type": params.type, "content":params.content} ,
-		function (r) {
-            var data;
-            data = JSON.stringify(r.documents);
-            //TODO: children load issue..., so we need to rewrite the 'data'
-            res.send (utils.message (utils.meta (100), data));
-		});
+    var query = {"type" : params.type, "content" : params.content};
+    if (params.content2)
+        query.content2 = params.content2;
+
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
+    client.open(function(err, client) {
+        client.collection('comments',
+            function (err, collection) {
+                collection.find(query).toArray(function(err, results) {
+                    var meta = {"status" : "ok", "statuscode" : 100};
+                    var msg = {"meta" : meta};
+                    var data = new Array();
+                    if (results.length == 0) {
+                        res.send (msg);
+                    } else {
+                        for (var i = page * pagesize; (i < results.length) && (i < (page + 1) * pagesize); i++) {
+                            data [i - page*pagesize] = results [i];
+                        }
+                        msg.data = data;    
+                        res.send (msg);
+                    }
+               });
+          });
+       });
 };
 
 function check_type (type, res) {
@@ -71,27 +88,28 @@ function check_content (content, res) {
 }
 
 function add_comment (req, res) {
-   var content2 = 0;
-   if (req.body["content2"] != undefined)
-       content2 = req.body["content2"];
-
-   /* TODO: Check the validation of 'parent'*/
-   $('test.comments').find({"content": content},
-        function(r) {
-            if (r.documents.length == 0) {
-                res.send (utils.message (utils.meta (105, "content id invalid")));
-            } else {
-	            $('test.comments').insert(
-			            {"type" :req.body["type"],
-			       		"content" :req.body["content"],
-    					"content2":content2,
-	    				"parent"  :req.body["parent"],
-		    			"subject" :req.body["subject"],
-			    		"message" :req.body["message"]});
-       			res.send (utils.message (utils.meta (100)));
-            }
-     	});
-}
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
+    client.open(function(err, client) {
+        client.collection('content',
+            function (err, collection) {
+                collection.find({"id" : req.body["content"]}).toArray(function(err, results) {
+                    if (results.length == 0) {
+                        res.send (utils.message (utils.meta(105, "content id invalid")));
+                    } else {
+                        var obj = {"type" :req.body["type"],
+                                    "content" :req.body["content"],
+	        	            		"parent"  :req.body["parent"],
+		        			        "subject" :req.body["subject"],
+        			        		"message" :req.body["message"]};
+                        if (req.body["content2"])
+                            obj.content2 = req.body["content2"];
+                        collection.insert (obj); 
+                        res.send (utils.message (utils.meta (100)));
+                    }
+                });
+            });
+    });
+};
 
 exports.add = function (req, res) {
     if (!check_type (req.body["type"], res))
