@@ -31,6 +31,7 @@ exports.list = function (req, res) {
     client.open(function(err, client) {
         client.collection('content',
             function (err, collection) {
+                /* TODO: I think we can make it better, get the total item in another call */
                 /*In fact we can get the page in a fast way, but, we need the totalitems.. 
                 collection.find(query).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
                 */
@@ -41,9 +42,10 @@ exports.list = function (req, res) {
                     if (results.length == 0) {
                         res.send (msg);
                     } else {
-                        for (var i = page * pagesize; (i < results.length) && (i < (page + 1)*pagesize); i++) {
+                        var skip = page *pagesize;
+                        for (var i = 0; (i < results.length) && (i < pagesize); i++) {
                             /*TODO: get the useful attr */
-                            data [i - page * pagesize] = results [i];
+                            data [i] = results [i + skip];
                         }
                         msg.data = data;
                         res.send (msg);
@@ -83,7 +85,8 @@ exports.categories = function (req, res) {
                     var meta = {"status" : "ok", "statuscode" : 100, "totalitems" : len};
                     var data = new Array ();
                     for (var i = 0; i < len; i++) {
-                        data[i].id = 001;
+                        /*TODO: add id */
+                        data[i].id = results[i].name;
                         data[i].name = results[i].name;
                     }
                     var msg = {"meta" : meta, "data" : data};
