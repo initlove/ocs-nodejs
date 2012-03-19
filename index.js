@@ -5,6 +5,7 @@
 
 var content = require('./service/content');
 var comments = require('./service/comments');
+var account = require('./service/account');
 var express = require('express')
 
 var app = module.exports = express.createServer();
@@ -23,6 +24,7 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+app.post('/person/check', account.check);
 app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);

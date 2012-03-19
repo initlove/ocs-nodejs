@@ -27,3 +27,20 @@ exports.auth = function (req, res, callback) {
         });
     });
 };
+
+exports.check = function (req, res) {
+    if ((req.body["login"] == undefined) || (req.body["password"] == undefined)) {
+        res.send (utils.message (utils.meta (101, "please specify all mandatory fields")));
+        return;
+    }
+
+    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    admindb.open (function (err, client) {
+        admindb.authenticate(req.body["login"], req.body["password"], function (err, val) {
+            if (err)
+                res.send (utils.message (utils.meta (102, "login not valid")));
+            else
+                res.send (utils.message (utils.meta (100, "successfull / valid account")));
+        });
+    });
+};
