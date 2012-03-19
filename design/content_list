@@ -1,0 +1,18 @@
+Gets a list of a specific set of contents.
+
+    Syntax: /v1/content/data/
+    HTTP Method: GET
+    URL Arguments: categories - Ids of the requested category ids seperated by "x".
+    URL Arguments: search - the part of the name of the item you want to find.
+    URL Arguments: user - show only contents from one specific user.
+    URL Arguments: external - if set external=off only contents which are hosted on the same server are shown
+    URL Arguments: distribution - show only content which is supported by this distributions. the parameter is a comma seperated list of ids as returned by the "distribution" method
+    URL Arguments: license - show only content which is available under a specific license. the parameter is a comma seperated list of ids as returned by the "license" method
+    URL Arguments: sortmode - The sortmode of the list. Possible values are: "new" - newest first , "alpha" - alphabetical, "high" - highest rated, "down" - most downloads
+    URL Arguments: page - The content page. You can control the size of a page with the pagesize argument. The first page is 0, the second is 1, ...
+    URL Arguments: pagesize - The amount of entries per page.
+    Result: content xml
+Statuscodes:
+
+    100 - successful
+    200 - too many API requests in the last 15 minutes from your IP address. please try again lat

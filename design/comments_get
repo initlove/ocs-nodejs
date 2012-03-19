@@ -23,11 +23,13 @@ return value, in json.
 			[
 				{"id" 	  	: 1243,
 				 "subject"	: "subjectdemo",
-				 "text"  	: "content demo",
+				 "message"  	: "content demo",
 				 "childcount"   : 0,
 				 "user"		: "initlove",
+        --- user or -- guestname and guest email,
 				 "date"		: "2012-01-12",
-				 "score"	: 50
+				 "score"	: 50,
+                
                 }
 			],
 			[

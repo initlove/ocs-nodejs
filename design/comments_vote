@@ -8,7 +8,9 @@ Result: status json
 100 - successful
 101 - comment not found
 102 - score is invalid
-103 - you have already voted on this comment
+103 - commentid is invalid
+104 - no permission to vote
+105 - you have already voted on this comment
 200 - too many API requests in the last minutes from your IP address. please try again later.
 
 Relevent tables:

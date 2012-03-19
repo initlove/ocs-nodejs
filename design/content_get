@@ -1,0 +1,24 @@
+get
+
+Read content data of one specific content.
+
+    Syntax: /v1/content/data/"contentid"/
+    HTTP Method: GET
+    Arguments: contentid - Id of a content
+    Result: content xml
+    Statuscodes:
+        100 - successfull
+        101 - content not found
+        200 - too many API requests in the last 15 minutes from your IP address. please try again later.  //TODO
+
+table:  content
+{"ocs": 
+    {   "meta" : 
+            {   "status" : "ok",
+                "statuscode" : 100,
+            },
+        "data" :[
+                ]
+    }
+}
+

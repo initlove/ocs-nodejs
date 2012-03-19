@@ -1,0 +1,185 @@
+    Syntax: v1/content/add
+    HTTP Method: POST
+    POST Arguments: name - the name of the entry
+    POST Arguments: type - the type or category of the entry. call the categories method to get a list of all categories.
+    POST Arguments: depend - the dependency of this entry. get the possible values by calling /v1/content/dependencies
+    POST Arguments: downloadtyp1 - the type of the first download. possible values are: 0 - use the uploaded file, 1 - use the downloadlink1, 2 - use downloadpackagename and downloadrepository
+    POST Arguments: downloadname1 - the name of the 1. downloadlink
+    POST Arguments: downloadlink1 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype1 - the type of the distribution for the download. call /v1/content/distributions for a list of possible options
+    POST Arguments: downloadbuy1 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason1 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice1 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint1 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature1 - the gpg signature of this download
+    POST Arguments: downloadpackagename1 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository1 - the repository where the package is located
+    POST Arguments: downloadname2 - the name of the downloadlink
+    POST Arguments: downloadlink2 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype2 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy2 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason2 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice2 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint2 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature2 - the gpg signature of this download
+    POST Arguments: downloadpackagename2 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository2 - the repository where the package is located
+    POST Arguments: downloadname3 - the name of the downloadlink
+    POST Arguments: downloadlink3 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype3 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy3 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason3 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice3 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint3 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature3 - the gpg signature of this download
+    POST Arguments: downloadpackagename3 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository3 - the repository where the package is located
+    POST Arguments: downloadname4 - the name of the downloadlink
+    POST Arguments: downloadlink4 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype4 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy4 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason4 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice4 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint4 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature4 - the gpg signature of this download
+    POST Arguments: downloadpackagename4 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository4 - the repository where the package is located
+    POST Arguments: downloadname5 - the name of the downloadlink
+    POST Arguments: downloadlink5 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype5 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy5 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason5 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice5 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint5 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature5 - the gpg signature of this download
+    POST Arguments: downloadpackagename5 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository5 - the repository where the package is located
+    POST Arguments: downloadname6 - the name of the downloadlink
+    POST Arguments: downloadlink6 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype6 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy6 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason6 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice6 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint6 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature5 - the gpg signature of this download
+    POST Arguments: downloadpackagename6 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository6 - the repository where the package is located
+    POST Arguments: downloadname7 - the name of the downloadlink
+    POST Arguments: downloadlink7 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype7 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy7 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason7 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice7 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint7 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature7 - the gpg signature of this download
+    POST Arguments: downloadpackagename7 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository7 - the repository where the package is located
+    POST Arguments: downloadname8 - the name of the downloadlink
+    POST Arguments: downloadlink8 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype8 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy8 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason8 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice8 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint8 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature8 - the gpg signature of this download
+    POST Arguments: downloadpackagename8 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository8 - the repository where the package is located
+    POST Arguments: downloadname9 - the name of the downloadlink
+    POST Arguments: downloadlink9 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype9 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy9 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason9 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice9 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint9 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature9 - the gpg signature of this download
+    POST Arguments: downloadpackagename9 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository9 - the repository where the package is located
+    POST Arguments: downloadname10 - the name of the downloadlink
+    POST Arguments: downloadlink10 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype10 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy10 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason10 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice10 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint10 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature10 - the gpg signature of this download
+    POST Arguments: downloadpackagename10 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository10 - the repository where the package is located
+    POST Arguments: downloadname11 - the name of the downloadlink
+    POST Arguments: downloadlink11 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype11 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy11 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason11 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice11 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint11 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature11 - the gpg signature of this download
+    POST Arguments: downloadpackagename11 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository11 - the repository where the package is located
+    POST Arguments: downloadname12 - the name of the downloadlink
+    POST Arguments: downloadlink12 - the url of the downloadlink
+    POST Arguments: downloaddistributiontype12 - the type of the distribution for the download. the types are described at downloaddistributiontype1.
+    POST Arguments: downloadbuy12 - is this download free or paid. 0 - free, 1 - paid.
+    POST Arguments: downloadbuyreason12 - the description why is content is not for free.
+    POST Arguments: downloadbuyprice12 - the price of this content in USD.
+    POST Arguments: downloadgpgfingerprint12 - the gpg fingerprint of this download
+    POST Arguments: downloadgpgsignature12 - the gpg signature of this download
+    POST Arguments: downloadpackagename12 - the name of the package in the repository
+    POST Arguments: downloadpackagerepository12 - the repository where the package is located
+    POST Arguments: description - a description text of the entry
+    POST Arguments: summary - a short summary of the entry
+    POST Arguments: licensetype - the license this content is under. get the possible values by calling /v1/content/licenses
+    POST Arguments: license - the license text
+    POST Arguments: feedbackurl - a link to the page where users can post feedback
+    POST Arguments: homepage - a link to the homepage of the entry
+    POST Arguments: homepagetype - the type of the link. get the possible values by calling /v1/content/homepages
+    POST Arguments: homepage2 - a link to the homepage of the entry
+    POST Arguments: homepagetype2 - the type of the link.
+    POST Arguments: homepage3 - a link to the homepage of the entry
+    POST Arguments: homepagetype3 - the type of the link.
+    POST Arguments: homepage4 - a link to the homepage of the entry
+    POST Arguments: homepagetype4 - the type of the link.
+    POST Arguments: homepage5 - a link to the homepage of the entry
+    POST Arguments: homepagetype5 - the type of the link.
+    POST Arguments: homepage6 - a link to the homepage of the entry
+    POST Arguments: homepagetype6 - the type of the link.
+    POST Arguments: homepage7 - a link to the homepage of the entry
+    POST Arguments: homepagetype7 - the type of the link.
+    POST Arguments: homepage8 - a link to the homepage of the entry
+    POST Arguments: homepagetype8 - the type of the link.
+    POST Arguments: homepage9 - a link to the homepage of the entry
+    POST Arguments: homepagetype9 - the type of the link.
+    POST Arguments: homepage10 - a link to the homepage of the entry
+    POST Arguments: homepagetype10 - the type of the link.
+    POST Arguments: video1 - a link to the video file
+    POST Arguments: video2 - a link to the video file
+    POST Arguments: video3 - a link to the video file
+    POST Arguments: version - the version of this entry
+    POST Arguments: changelog - the changelog of this entry
+    POST Arguments: donation - do you want donation for this entry? possible values are "yes" or "" for no donation.
+    POST Arguments: donationreason - a reason we you want a donation
+    POST Arguments: osbsproject - the opensuse build service project id
+    POST Arguments: osbspackage - the opensuse build service package id
+    Result: status xml
+    Mandatory fields: "name" and "type" are mandatory fields
+    Statuscodes:
+        100 - successful
+        101 - please specify all mandatory fields
+        102 - no permission to change content 
+
+    Example: http://api.opendesktop.org/v1/content/add 
+
+Example:
+
+{
+    "ocs" : {
+                "meta" : {
+                    "status" : "ok",
+                    "statuscode" : 100
+                    },
+                "data" : [
+                    "id" : 123456
+                        ]
+            }
+}
+  
+TODO: show we have a uuid for each application? an app register service?
+currently, we use 'pkgname' to differentiate the app.

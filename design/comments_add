@@ -1,5 +1,7 @@
 Syntax: v1/comments/add
 HTTP Method: POST
+Arguments: guestname
+Arguments: guestemail
 Arguments: type - type of comment
 Arguments: content - the content id where the comment belongs
 Arguments: content2 - the sub content id where the comment belongs
@@ -20,6 +22,14 @@ Result: status json
 103 - no permission to add a comment 
 104 - wrong type
 105 - content invalid
+
+--change to /comments/add
+
+with the user:password -- check it we get it
+if we did not have the user password fields,
+use the guest info
+guestname: the nickname of the guest user
+guestemail: the email of the guest user
 
 content:  for example, id of the app
 		check if valid

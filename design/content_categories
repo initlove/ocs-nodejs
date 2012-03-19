@@ -1,0 +1,28 @@
+    Syntax: /v1/content/categories
+    HTTP Method: GET
+    Result: categories xml 
+
+
+change to /content/categories?version=v1
+
+http://standards.freedesktop.org/menu-spec/menu-spec-1.0.html
+
+table:  category  
+{"ocs": 
+    {   "meta" : 
+            {   "status" : "ok",
+                "statuscode" : 100,
+                "message" :  empty? ,
+                "totalitems" : 10
+            },
+        "data" :[
+                    "id" : 1,
+                    "name" : "Game"
+                ],
+                [
+                    "id" : 2,
+                    "name" : "Gnome"
+                ]
+    }
+}
+

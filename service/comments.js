@@ -4,30 +4,29 @@
 
 var $ = require("mongous").Mongous; /* seems hung the server, donnot know why */
 var express = require('express')
+var BSON = require('mongodb').BSONPure;
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
-var url = require('url');
 var utils = require('./utils');
+var account = require('./account');
 
 exports.get = function (req, res){
-	var part = url.parse(req.url,true);
-	var params = part.query;
     var page = 0;
     var pagesize = 10;
 
-    if (!check_type (params.type, res))
+    if (!check_type (req.query.type, res))
         return;
-    if (!check_content (params.content, res))
+    if (!check_content (req.query.content, res))
         return;
 
-    if (params.page != undefined)
-        page = params.page;
-    if (params.pagesize != undefined)
-        pagesize = params.pagesize;
+    if (req.query.page != undefined)
+        page = req.query.page;
+    if (req.query.pagesize != undefined)
+        pagesize = req.query.pagesize;
 
-    var query = {"type" : params.type, "content" : params.content};
-    if (params.content2)
-        query.content2 = params.content2;
+    var query = {"type" : req.query.type, "content" : req.query.content};
+    if (req.query.content2)
+        query.content2 = req.query.content2;
 
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     client.open(function(err, client) {
@@ -91,24 +90,30 @@ function check_content (content, res) {
 function add_comment (req, res) {
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     client.open(function(err, client) {
-        client.collection('content',
-            function (err, collection) {
-                collection.find({"id" : req.body["content"]}).toArray(function(err, results) {
-                    if (results.length == 0) {
-                        res.send (utils.message (utils.meta(105, "content id invalid")));
-                    } else {
-                        var obj = {"type" :req.body["type"],
-                                    "content" :req.body["content"],
-	        	            		"parent"  :req.body["parent"],
-		        			        "subject" :req.body["subject"],
-        			        		"message" :req.body["message"]};
-                        if (req.body["content2"])
-                            obj.content2 = req.body["content2"];
-                        collection.insert (obj); 
-                        res.send (utils.message (utils.meta (100)));
+        client.collection('content', function (err, collection) {
+            collection.find({"id" : req.body["content"]}).toArray(function(err, results) {
+                if (results.length == 0) {
+                    res.send (utils.message (utils.meta(105, "content id invalid")));
+                } else {
+                    var obj = {"type" :req.body["type"],
+                            "content" :req.body["content"],
+	                 		"parent"  :req.body["parent"],
+		    		        "subject" :req.body["subject"],
+        	           		"message" :req.body["message"]};
+                    if (req.body["content2"])
+                        obj.content2 = req.body["content2"];
+                    obj.date = Date();
+                    if (req.user != undefined)
+                        obj.user = req.user;
+                    else {
+                        obj.guestname = req.body["guestname"];
+                        obj.guestemail = req.body["guestemail"];
                     }
-                });
+                    collection.insert (obj); 
+                    res.send (utils.message (utils.meta (100)));
+                }
             });
+        });
     });
 };
 
@@ -121,63 +126,84 @@ exports.add = function (req, res) {
     if (!check_content (req.body["content"], res))
         return;
 
-    add_comment (req, res);
+    account.auth (req, res, function (r) {
+        if (r == 0) {           /* success */
+            add_comment (req, res);
+        } else if (r == 1) {    /* no user and password */
+            if ((req.body["guestname"] == undefined) || (req.body["guestemail"] == undefined)) {
+                var meta ={"status": "fail", "statuscode":103, "message" :"no permission to add a comment"};
+                var msg = {"meta" : meta};
+                res.send (msg);
+            } else {
+                add_comment (req, res);
+            }
+        } else if (r == 2) {    /* we have user:password, but failed */
+            var meta ={"status": "fail", "statuscode":103, "message" :"no permission to add a comment"};
+            var msg = {"meta" : meta};
+            res.send (msg);
+        } else {    /*TODO: ? maybe the apis limitation  */
+            console.log (r);
+        }
+    });
 
     return;
 };
 
 vote_comment = function (req, res) {
+    /* personid is valid as we check it before */
+    var personid = utils.get_username (req);
+
+    var commentid = req.body["commentid"];
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
     var date = Date();
-    //TODO: get personid
-    var personid;
-    /* add to votes table */
-    $('test.votes').insert(
-        {"commentid" :req.body["commentid"],
-        "score" :req.body["score"],
-        "personid" :personid,
-        "date" : date,
+    client.open(function(err, client) {
+        /* add to votes table */
+        client.collection('votes', function (err, collection) {
+            collection.insert (
+                {"commentid" :commentid,
+                "score" :req.body["score"],
+                "personid" :personid,
+                "date" : date}
+            );
         });
-       			
-    /* update the summary table */
-    $('test.summary').find({"commentid": req.body["commentid"]},
-        function (r) {
-            var score;
-            if (r.documents.length == 1) {
-                score = r.documents[0].score;
-                var count = r.documents[0].count;
-                var total = count * score + req.body["score"];
-                count ++;
-                score = total / count;
-                $('test.summary').update({"commentid": req.body["commentid"]},
-                    {"commentid": req.body["commentid"],
-                    "count":count,
-                    "score":score});
-            } else {
-                score = req.body["score"];
-                $('test.summary').insert({
-                    "commentid": req.body["commentid"],
-                    "count": 1,
-                    "score": score});
-            }
-            /* update the comment table */
-            $('test.comments').find({"commentid" : req.body["commentid"]},
-                function (r) {
-                    $('test.comments').update({"commentid" : req.body["commentid"]},
-                        {"commentid": r.documents[0].commentid,
-                        "type": r.documents[0].type,
-                        "content": r.documents[0].content,
-                        /*  "content2", r.documents[0].content2, */
-                        "parent": r.documents[0].parent,
-                        /*  "subject", r.documents[0].subject,  */
-                        "message": r.documents[0].message,
-                        "score": score});
-                });
+
+        /* update the 'summary' table and the 'comment' table */
+        client.collection('summary', function (err, collection) {
+            collection.find({"commentid" : commentid}).toArray(function(err, r) {
+                if (r.length == 1) {
+                    var score = parseInt (r[0].score);
+                    var count = parseInt (r[0].count);
+                    var total = count * score + parseInt (req.body["score"]);
+                    count ++;
+                    score = total / count;
+                    collection.update(
+                        {"commentid": commentid},
+                        {"commentid": commentid,
+                        "count":count,
+                        "score":score}
+                    );
+                    client.collection('comments', function (err, collection) {
+                        collection.update({_id: BSON.ObjectID (commentid)}, {$set: {"score" : score}});
+                    });
+                } else {
+                    var score = parseInt (req.body["score"]);
+                    collection.insert(
+                        {"commentid": commentid,
+                        "count": 1,
+                        "score": score}
+                    );
+                    client.collection('comments', function (err, collection) {
+                        collection.update({_id: BSON.ObjectID (commentid)}, {$set: {"score" : score}});
+                    });
+                }
+            });
         });
+    });
     res.send (utils.message (utils.meta (100)));
 };
 
 exports.vote = function (req, res) {
-    var score = req.body["score"];
+    var score = parseInt (req.body["score"]);
     var score_valid = false;
     if (score != undefined) {
         if ((score >= 0) && (score <= 100)) {
@@ -191,23 +217,43 @@ exports.vote = function (req, res) {
 
     var commentid = req.body["commentid"];
     if ((commentid == undefined) || (commentid.length == 0)) {
-        res.send (utils.message (utils.meta (101, "comment is empty")));
+        res.send (utils.message (utils.meta (103, "commentid is invalid")));
         return;
     }
 
-    $('test.comments').find({"commentid": commentid},
-        function(r) {
-            if (r.documents.length == 0) {
-                res.send (utils.message (utils.meta (101, "comment is empty")));
-            } else {
-                $('test.votes').find({"commentid": commentid, "personid": personid},
-                    function (r) {
-                        if (r.documents.length == 0) {
-                            vote_comment (req, res);
+    /*TODO: now, I use the _id as the comment id */
+    if(commentid != null && 'number' != typeof commentid && (commentid.length != 12 && commentid.length != 24)) {
+        res.send (utils.message (utils.meta (103, "commentid is invalid")));
+        return;
+    }
+
+    var personid = utils.get_username(req);
+    account.auth (req, res, function (r) {
+        if (r == 0) {           /* success, only auth user can vote, guest cannot */
+            var client = new db('test', new server('127.0.0.1', 27017, {}));
+            client.open(function(err, client) {
+                client.collection('comments', function (err, collection) {
+                    collection.find({_id: BSON.ObjectID(commentid)}).toArray(function(err, results) {
+                        console.log (results);
+                        if (results.length == 0) {
+                            res.send (utils.message (utils.meta (101, "comment not found")));
                         } else {
-                            res.send (utils.message (utils.meta (103, "you have already voted on this comment")));
+                            client.collection('votes', function (err, collection) {
+                                collection.find({"commentid": commentid, "personid": personid}).toArray(function(err, results) {
+                                    if (results.length != 0) {
+                                        res.send (utils.message (utils.meta (105, "you have already voted on this comment")));
+                                    } else
+                                        vote_comment (req, res);
+                                });
+                            });
                         }
                     });
-            }
-     	});
+             	});
+            });
+        } else {
+            var meta ={"status": "fail", "statuscode":104, "message" :"no permission to vote"};
+            var msg = {"meta" : meta};
+            res.send (msg);
+        }
+    });
 };

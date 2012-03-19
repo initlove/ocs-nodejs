@@ -1,5 +1,4 @@
 var utils = require('./utils');
-var url = require('url');
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 
@@ -7,24 +6,22 @@ var server = require('mongodb').Server;
 var client = new db('test', new server('127.0.0.1', 27017, {}));
 
 exports.list = function (req, res) {
-    var part = url.parse(req.url,true);
-    var params = part.query;
     var page = 0;
     var pagesize = 10;
 
-    if (params.page != undefined)
-        page = params.page;
-    if (params.pagesize != undefined)
-        pagesize = params.pagesize;
+    if (req.query.page != undefined)
+        page = req.query.page;
+    if (req.query.pagesize != undefined)
+        pagesize = req.query.pagesize;
 
     var query = {};
-    if (params.search != undefined) {
+    if (req.query.search != undefined) {
         query.$or = new Array();
-        query.$or[0] = {"name" : {$regex: params.search, $options: 'i'}};
-        query.$or[1] = {"summary" : {$regex: params.search, $options: 'i'}};
+        query.$or[0] = {"name" : {$regex: req.query.search, $options: 'i'}};
+        query.$or[1] = {"summary" : {$regex: req.query.search, $options: 'i'}};
     }
-    if (params.categories != undefined) {
-        var category_array = params.categories.split ("x");
+    if (req.query.categories != undefined) {
+        var category_array = req.query.categories.split ("x");
         query.appcategories = {$in: category_array};
     }
     var client = new db('test', new server('127.0.0.1', 27017, {}));
