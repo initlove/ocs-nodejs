@@ -1,0 +1,16 @@
+    Syntax: /v1/person/remove
+    Method: POST
+    POST Arguments: login - The login or the API key
+    POST Arguments: password - The password
+    Mandatory fields: "login", "password"
+
+/person/remove
+
+this is just for my test, is not included in the standard
+
+but in the long run, we can support it
+
+100: ok
+101: please specify all mandatory fields
+102: not authenticated
+110: system error, should fix in the server

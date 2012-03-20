@@ -1,3 +1,14 @@
-curl --data "login=dliang&password=novell" "http://localhost:3000/person/check"
+echo ""
+echo "curl --data 'login=dliang&password=novell' http://localhost:3000/person/check"
+curl --data "login=dliang&password=novell" http://localhost:3000/person/check
+echo ""
+
+echo ""
+echo "curl --data 'login=dliang&password=novell22' http://localhost:3000/person/check"
 curl --data "login=dliang&password=novell22" "http://localhost:3000/person/check"
+echo ""
+
+echo ""
+echo "curl --data 'login=dliang' http://localhost:3000/person/check"
 curl --data "login=dliang" "http://localhost:3000/person/check"
+echo ""

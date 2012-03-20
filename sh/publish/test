@@ -1,0 +1,3 @@
+sh person_add
+sh person_check
+sh person_remove

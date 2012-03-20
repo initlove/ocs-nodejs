@@ -44,3 +44,156 @@ exports.check = function (req, res) {
         });
     });
 };
+
+function add_account (req, res) {
+    var login = req.body["login"];
+    var password = req.body["password"];
+    var firstname = req.body["firstname"];
+    var lastname = req.body["lastname"];
+    var email = req.body["email"];
+
+    console.log ("add account" + login + "\n");
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
+    client.open (function (err, client) {
+        client.collection('person', function (err, collection) {
+            collection.find({"login" : login}).toArray(function(err, results) {
+                if (results.length == 0) {
+                    collection.insert (
+                        {"login" : login,
+                        "password" : password,
+                        "firstname" : firstname,
+                        "lastname": lastname,
+                        "email": email}
+                    );
+                    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+                    admindb.open (function (err, client) {
+                        admindb.addUser(login, password, function (err, result) {
+                            if (err) {
+                                console.log ("System error: add user to admin: "  + login + " ");
+                                res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                            } else {
+                                res.send (utils.message (utils.meta (100)));
+                            }
+                        });
+                    });
+                } else {
+                    console.log ("System error: add the same account to 'person': "  + login + " ");
+                }
+            });
+        });
+    });
+
+};
+
+exports.add = function (req, res) {
+    var login = req.body["login"];
+    var password = req.body["password"];
+    var firstname = req.body["firstname"];
+    var lastname = req.body["lastname"];
+    var email = req.body["email"];
+
+    if ((login == undefined) ||
+        (password == undefined) ||
+        (firstname  == undefined) ||
+        (lastname == undefined) ||
+        (email == undefined)) {
+        res.send (utils.message (utils.meta (101, "please specify all mandatory fields ")));
+        return;
+    }
+
+    var password_filter = /[a-zA-Z0-9]{8,}/;
+    if (!password_filter.test(password)) {
+        res.send (utils.message (utils.meta (102, "please specify a valid password")));
+        return;
+    }
+
+    /*TODO: we did not spec the standard here */
+    var login_filter = /[a-zA-Z0-9]{4,}/;
+    if (!login_filter.test(login)) {
+        res.send (utils.message (utils.meta (103, "please specify a valid login")));
+        return;
+    }
+
+    var email_filter = /[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}/;
+    if (!email_filter.test(email)) {
+        res.send (utils.message (utils.meta (106, "email invalid")));
+        return;
+    }
+
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
+    client.open(function(err, client) {
+        client.collection('person', function (err, collection) {
+            collection.find({"login" : login}).toArray(function(err, results) {
+                if (err) {
+                    console.log (err);
+                    res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                    return;
+                }
+                if (results.length > 0) {
+                    res.send (utils.message (utils.meta (104, "login already exists")));
+                } else {
+                    collection.find({"email" : email}).toArray(function(err, results) {
+                        if (err) {
+                            console.log (err);
+                            res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                            return;
+                        }
+                        if (results.length > 0) {
+                            res.send (utils.message (utils.meta (105, "email already taken")));
+                        } else {
+                            add_account (req, res);
+                        }
+                    });
+                }
+            });
+        });
+    });
+};
+
+function remove_account (req, res) {
+    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    admindb.open (function (error, client) {
+        admindb.removeUser(req.body["login"], function (err, result) {
+            if (err) {
+                res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+            } else {
+                var client = new db('test', new server('127.0.0.1', 27017, {}));
+                client.open(function(err, client) {
+                    client.collection('person', function (err, collection) {
+                        collection.find({"login" : req.body["login"]}).toArray(function(err, results) {
+                            if (results.length == 0) {
+                                console.log ("System error: remove the unexisted user?");
+                                res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                            } else {
+                                collection.remove({"login" : req.body["login"]});
+                                res.send (utils.message (utils.meta (100)));
+                            }
+                        });
+                    });
+                });
+            }
+        });
+    });
+
+};
+
+exports.remove = function (req, res) {
+    var login = req.body["login"];
+    var password = req.body["password"];
+
+    if (login == undefined || password == undefined) {
+        res.send (utils.message (utils.meta (101, "please specify all mandatory fields ")));
+        return;
+    }
+
+    /*TODO: find the user first? */
+    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    admindb.open (function (error, client) {
+        admindb.authenticate(login, password, function (err, val) {
+            if (err)
+                res.send (utils.message (utils.meta (102, "not authenticated")));
+            else
+                remove_account (req, res);
+        });
+    });
+};
