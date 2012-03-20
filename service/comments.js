@@ -110,7 +110,7 @@ function add_comment (req, res) {
                         obj.guestemail = req.body["guestemail"];
                     }
                     collection.insert (obj); 
-                    res.send (utils.message (utils.meta (100)));
+                    res.send (utils.message (utils.meta(100)));
                 }
             });
         });
@@ -131,16 +131,12 @@ exports.add = function (req, res) {
             add_comment (req, res);
         } else if (r == 1) {    /* no user and password */
             if ((req.body["guestname"] == undefined) || (req.body["guestemail"] == undefined)) {
-                var meta ={"status": "fail", "statuscode":103, "message" :"no permission to add a comment"};
-                var msg = {"meta" : meta};
-                res.send (msg);
+                res.send (utils.message (utils.meta(103, "no permission to add a comment")));
             } else {
                 add_comment (req, res);
             }
         } else if (r == 2) {    /* we have user:password, but failed */
-            var meta ={"status": "fail", "statuscode":103, "message" :"no permission to add a comment"};
-            var msg = {"meta" : meta};
-            res.send (msg);
+            res.send (utils.message (utils.meta(103, "no permission to add a comment")));
         } else {    /*TODO: ? maybe the apis limitation  */
             console.log (r);
         }
@@ -251,9 +247,7 @@ exports.vote = function (req, res) {
              	});
             });
         } else {
-            var meta ={"status": "fail", "statuscode":104, "message" :"no permission to vote"};
-            var msg = {"meta" : meta};
-            res.send (msg);
+            res.send (utils.message (utils.meta (104, "no permission to vote")));
         }
     });
 };

@@ -8,6 +8,7 @@ var utils = require('./utils');
  * 3 and others  not defined yet
  */
 exports.auth = function (req, res, callback) {
+    console.log (req);
     var header = req.headers.authorization;
     if (header == undefined) 
         return callback (1);

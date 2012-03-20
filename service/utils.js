@@ -1,29 +1,22 @@
 exports.meta = function (status_code, status_message) {
-	var json = "{";
+    var meta = {};
 	if (status_code == 100)
-		json += "\"status\":\"ok\"";
-	else
-		json += "\"status\":\"fail\"";
-    json += ",";
-	json += "\"statuscode\":" + status_code;
+        meta.status = "ok";
+    else
+        meta.status = "fail";
+    meta.statuscode = status_code;
     if (status_message != undefined) {
-        json += ",";
-    	json += "\"message\":\"" + status_message + "\"";
+        meta.message = status_message;
     }
-	json += "}";
-	return json;
+	return meta;
 }
 
 exports.message = function (meta, data) {
-    var json = "{\"ocs\": {";
-    json += "\"meta\":" + meta;
-    if (data != undefined) {
-        json += ",";
-        json += "\"data\":" + data;
-    }
-    json += "}}";
+    var msg = {"meta" : meta};
+    if (data)
+        msg.data = data;
 
-    return json;
+    return msg;
 }
 
 exports.get_username = function (req) {
