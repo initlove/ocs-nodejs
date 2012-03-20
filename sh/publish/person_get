@@ -1,0 +1,14 @@
+echo ""
+echo "curl http://sectest001:test001331@localhost:3000/person/data/sectest001"
+curl http://sectest001:test001331@localhost:3000/person/data/sectest001
+echo ""
+
+echo ""
+echo "curl http://sectest11001:st001331@localhost:3000/person/data/sectest001"
+curl http://sectest001:st001331@localhost:3000/person/data/sectest001
+echo ""
+
+echo ""
+echo "curl http://sectest001:test001331@localhost:3000/person/data/sectest00not"
+curl http://sectest001:test001331@localhost:3000/person/data/sectest00not
+echo ""

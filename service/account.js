@@ -52,15 +52,14 @@ function add_account (req, res) {
     var lastname = req.body["lastname"];
     var email = req.body["email"];
 
-    console.log ("add account" + login + "\n");
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     client.open (function (err, client) {
         client.collection('person', function (err, collection) {
             collection.find({"login" : login}).toArray(function(err, results) {
                 if (results.length == 0) {
+                    /* password should not be saved */
                     collection.insert (
                         {"login" : login,
-                        "password" : password,
                         "firstname" : firstname,
                         "lastname": lastname,
                         "email": email}
@@ -195,5 +194,38 @@ exports.remove = function (req, res) {
             else
                 remove_account (req, res);
         });
+    });
+};
+
+function get_account (req, res) {
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
+    client.open(function(err, client) {
+        client.collection('person', function (err, collection) {
+            collection.find({"login" : req.params.personid}).toArray(function(err, results) {
+                if (err) {
+                    console.log ("System error in get account " + req.params.personid);
+                } else if (results.length == 0) {
+                    res.send (utils.message (utils.meta (101, "person not found")));
+                } else {
+                    /*TODO: is private */
+                    var data = new Array();
+                    data [0] = results[0];
+                    var meta = {"status" : "ok", "statuscode" : 100};
+                    var msg = {"meta" : meta};
+                    msg.data = data;
+                    res.send (msg);
+                }
+            });
+        });
+    });
+};
+
+exports.get = function (req, res) {
+    exports.auth (req, res, function (r) {
+        if (r == 0) {
+            get_account (req, res);
+        } else {
+            res.send (utils.message (utils.meta (103, "no permission")));
+        }
     });
 };

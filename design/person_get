@@ -1,0 +1,13 @@
+get the data from one specific person. Only authenticated users are allowed to access this method. Authentication is done by sending a Basic HTTP Authorisation header. 
+
+Syntax: /v1/person/data/"personid"/
+HTTP method: GET
+Arguments: personid - Id of a person. for example "frank"
+
+
+/person/data/:personid
+
+100 - successfull
+101 - person not found
+102 - data is private 
+103 - no permission
