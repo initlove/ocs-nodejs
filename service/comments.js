@@ -90,8 +90,8 @@ function check_content (content, res) {
 function add_comment (req, res) {
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     client.open(function(err, client) {
-        client.collection('content', function (err, collection) {
-            collection.find({"id" : req.body["content"]}).toArray(function(err, results) {
+        client.collection('content', function (err, content_collection) {
+            content_collection.find({"id" : req.body["content"]}).toArray(function(err, results) {
                 if (results.length == 0) {
                     res.send (utils.message (utils.meta(105, "content id invalid")));
                 } else {
@@ -102,15 +102,23 @@ function add_comment (req, res) {
         	           		"message" :req.body["message"]};
                     if (req.body["content2"])
                         obj.content2 = req.body["content2"];
-                    obj.date = Date();
-                    if (req.user != undefined)
-                        obj.user = req.user;
-                    else {
+                    var user = utils.get_username (req);
+                    if (user != undefined) {
+                        obj.user = user;
+                    } else {
                         obj.guestname = req.body["guestname"];
                         obj.guestemail = req.body["guestemail"];
                     }
-                    collection.insert (obj); 
-                    res.send (utils.message (utils.meta(100)));
+                    obj.date = Date();
+                    client.collection('comments', function (err, comment_collection) {
+                        if (err) {
+                            console.log ("System error in add comment ");
+                        } else {
+                            comment_collection.insert (obj); 
+                            content_collection.update({"id" : req.body["content"]}, {$inc: {"comments" :1}}, true, true);
+                            res.send (utils.message (utils.meta(100)));
+                        }
+                    });
                 }
             });
         });

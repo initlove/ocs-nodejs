@@ -9,7 +9,7 @@ get
 	pagesize: size of the page
 
 I change it to 
-	/comments?type=x&contentid=x&contentid2=&page=0&pagesize=10
+	/comments/get?type=x&contentid=x&contentid2=&page=0&pagesize=10
 
 return value, in json.
 
