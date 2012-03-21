@@ -238,7 +238,6 @@ exports.vote = function (req, res) {
             client.open(function(err, client) {
                 client.collection('comments', function (err, collection) {
                     collection.find({_id: BSON.ObjectID(commentid)}).toArray(function(err, results) {
-                        console.log (results);
                         if (results.length == 0) {
                             res.send (utils.message (utils.meta (101, "comment not found")));
                         } else {

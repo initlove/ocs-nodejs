@@ -24,28 +24,48 @@ exports.list = function (req, res) {
         var category_array = req.query.categories.split ("x");
         query.appcategories = {$in: category_array};
     }
+
+    var sort = {};
+    if (req.query.sort != undefined) {
+        if (req.query.sort == "new") {
+            sort.date = -1;
+        } else if (req.query.sort == "alpha") {
+            sort.id = -1;
+        } else if (req.query.sort == "high") {
+            sort.score = -1;
+        } else if (req.query.sort == "down") {
+            sort.downloads = -1;
+        }
+    } else {
+        sort.date = -1;
+    }
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     client.open(function(err, client) {
         client.collection('content',
             function (err, collection) {
-                /* TODO: I think we can make it better, get the total item in another call */
-                /*In fact we can get the page in a fast way, but, we need the totalitems.. 
-                collection.find(query).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
-                */
-                collection.find(query).toArray(function(err, results) {
-                    var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
-                    var msg = {"meta" : meta};
-                    var data = new Array();
-                    if (results.length == 0) {
+                collection.find(query).count(function(err, count) {
+                    if (err) {
+                        res.send (utils.message(utils.meta(110, "System error, should fix in server")));
+                    } else if (count == 0) {
+                        var meta = {"status" : "ok", "statuscode" : 100, "totalitems": count, "itemsperpage": pagesize};
+                        var msg = {"meta" : meta};
                         res.send (msg);
                     } else {
-                        var skip = page *pagesize;
-                        for (var i = 0; (i < results.length) && (i < pagesize); i++) {
-                            /*TODO: get the useful attr */
-                            data [i] = results [i + skip];
-                        }
-                        msg.data = data;
-                        res.send (msg);
+                        collection.find(query).sort(sort).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
+                            var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
+                            var msg = {"meta" : meta};
+                            var data = new Array();
+                            if (results.length == 0) {
+                                res.send (msg);
+                            } else {
+                                for (var i = 0; (i < results.length) && (i < pagesize); i++) {
+                                    /*TODO: get the useful attr */
+                                    data [i] = results [i];
+                                }
+                                msg.data = data;
+                                res.send (msg);
+                            }
+                        });
                     }
                 });
             });

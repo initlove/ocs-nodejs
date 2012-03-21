@@ -17,6 +17,11 @@ fs.readFile('./appdata.json', function (err, data) {
         var len = json.applications.length;
         for (var i = 0; i < len; i++) {
             json.applications [i].repo = json.repo;
+            json.applications [i].data = Date();
+            json.applications [i].comments = 0;
+            json.applications [i].downloads = 0;
+            json.applications [i].fans = 0;
+            json.applications [i].score = 50;
             $('test.content').save (json.applications [i]);
             add_category (json.applications [i]);
             /*TODO: license or lots of other infos should be added */
