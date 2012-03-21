@@ -31,6 +31,7 @@ app.get('/person/data/:personid', account.get);
 app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);
+app.get('/content/download/:contentid/:itemid', content.download);
 app.get('/comments/get', comments.get);
 app.post('/comments/add', comments.add);
 app.post('/comments/vote', comments.vote);

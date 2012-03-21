@@ -16,3 +16,15 @@ Statuscodes:
 
     100 - successful
     200 - too many API requests in the last 15 minutes from your IP address. please try again lat
+
+
+download change to:
+    downloadinfos : [
+                way = 1,
+                price = 0.0,
+                name = *,
+                link = *,
+                repo = *,
+                pkgname = *
+            ],
+            [
