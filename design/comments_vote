@@ -1,4 +1,4 @@
-Syntax: v1/comments/vote
+Syntax: v1/comments/vote/commentid
 
 HTTP Method: POST
 Arguments: commentid -- id of a comment

@@ -1,8 +1,7 @@
 var utils = require('./utils');
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
-
-
+var account = require('./account');
 
 exports.list = function (req, res) {
     var page = 0;
@@ -137,5 +136,101 @@ exports.download = function (req, res) {
                 }
             });
         });
+    });
+};
+
+vote_content = function (req, res) {
+    var contentid = parseInt (req.params.contentid);
+    var client = new db('test', new server('127.0.0.1', 27017, {}));
+    client.open(function(err, client) {
+        if (err) {
+            res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
+            console.log ("System error in vote comment");
+            return;
+        } else {
+            res.send (utils.message (utils.meta (100)));
+        }
+
+        /* add to votes table */
+        client.collection('votes', function (err, collection) {
+            var personid = utils.get_username (req);
+            var date = Date();
+            collection.insert (
+                {"contentid" :contentid,
+                "score" :req.body["score"],
+                "personid" :personid,
+                "date" : date}
+                );
+        });
+    
+        /* update the 'summary' table and the 'content' table */
+        client.collection('summary', function (err, collection) {
+            collection.find({"vote_contentid" : contentid}).toArray(function(err, r) {
+                if (r.length == 1) {
+                    var score = parseInt (r[0].score);
+                    var count = parseInt (r[0].count);
+                    var total = count * score + parseInt (req.body["score"]);
+                    count ++;
+                    score = total / count;
+                    collection.update({"vote_contentid": contentid},
+                        {$set : {"count":count,"score":score}}, true, true);
+                    client.collection('content', function (err, collection) {
+                        collection.update({"id": contentid}, {$set: {"score" : score}});
+                    });
+                } else {
+                    var score = parseInt (req.body["score"]);
+                    collection.insert(
+                        {"vote_contentid" : contentid,
+                        "count": 1,
+                        "score": score}
+                        );
+                    client.collection('content', function (err, collection) {
+                        collection.update({"id": contentid}, {$set: {"score" : score}});
+                    });
+                }
+            });
+        });
+    });
+};
+
+exports.vote = function (req, res) {
+    var score = parseInt (req.body["score"]);
+    var score_valid = false;
+    if (score != undefined) {
+        if ((score >= 0) && (score <= 100)) {
+            score_valid = true;
+        }
+    }
+    if (score_valid == false) {
+        res.send (utils.message (utils.meta (102, "score is invalid")));
+        return;
+    }
+
+    var contentid = parseInt (req.params.contentid);
+    account.auth (req, res, function (r) {
+        if (r == 0) {           /* success, only auth user can vote, guest cannot */
+            var personid = utils.get_username(req);
+            var client = new db('test', new server('127.0.0.1', 27017, {}));
+            client.open(function(err, client) {
+                client.collection('content', function (err, collection) {
+                    collection.find({"id": contentid}).toArray(function(err, results) {
+                        if (results.length == 0) {
+                            res.send (utils.message (utils.meta (101, "content not found")));
+                        } else {
+                            client.collection('votes', function (err, collection) {
+                                collection.find({"contentid": contentid, "personid": personid}).toArray(function(err, results) {
+                                    if (results.length != 0) {
+                                        res.send (utils.message (utils.meta (105, "you have already voted on this content")));
+                                    } else
+                                        vote_content (req, res);
+                                });
+                            });
+                        }
+                    });
+                });
+            });
+        } else {
+            res.send (utils.message (utils.meta (104, "no permission to vote")));
+        }
     });
 };

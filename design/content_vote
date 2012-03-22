@@ -1,0 +1,15 @@
+Vote for one specific content.
+
+    Syntax: /v1/content/vote/"contentid"
+    HTTP Method: POST
+    Arguments: contentid - Id of a content
+    POST Arguments: vote - The vote. "good" or "bad" (deprecated) or an integer between 0 to 100. 0 equals bad and 100 equals good
+    Result: status xml
+    Statuscodes:
+        100 - successful
+        101 - content not found
+        200 - too many API requests in the last 15 minutes from your IP address. please try again later. 
+
+    Example: http://api.opendesktop.org/v1/content/vote/12345 with the POST variable vote=good 
+
+Examp

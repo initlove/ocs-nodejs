@@ -4,7 +4,6 @@
 
 var $ = require("mongous").Mongous; /* seems hung the server, donnot know why */
 var express = require('express')
-var BSON = require('mongodb').BSONPure;
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 var utils = require('./utils');
@@ -164,15 +163,20 @@ exports.add = function (req, res) {
 };
 
 vote_comment = function (req, res) {
-    /* personid is valid as we check it before */
-    var personid = utils.get_username (req);
-
-    var commentid = parseInt (req.body["commentid"]);
+    var commentid = parseInt (req.params.commentid);
     var client = new db('test', new server('127.0.0.1', 27017, {}));
-    var date = Date();
     client.open(function(err, client) {
+        if (err) {
+            res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
+            console.log ("System error in vote comment");
+            return;
+        } else {
+            res.send (utils.message (utils.meta (100)));
+        }
         /* add to votes table */
         client.collection('votes', function (err, collection) {
+            var personid = utils.get_username (req);
+            var date = Date();
             collection.insert (
                 {"commentid" :commentid,
                 "score" :req.body["score"],
@@ -198,7 +202,7 @@ vote_comment = function (req, res) {
                 } else {
                     var score = parseInt (req.body["score"]);
                     collection.insert(
-                        {"commentid": commentid,
+                        {"vote_commentid": commentid,
                         "count": 1,
                         "score": score}
                     );
@@ -209,7 +213,6 @@ vote_comment = function (req, res) {
             });
         });
     });
-    res.send (utils.message (utils.meta (100)));
 };
 
 exports.vote = function (req, res) {
@@ -225,14 +228,10 @@ exports.vote = function (req, res) {
         return;
     }
 
-    if (req.body["commentid"] == undefined) {
-        res.send (utils.message (utils.meta (103, "commentid is invalid")));
-        return;
-    }
-    var commentid = parseInt (req.body["commentid"]);   
-    var personid = utils.get_username(req);
+    var commentid = parseInt (req.params.commentid);   
     account.auth (req, res, function (r) {
         if (r == 0) {           /* success, only auth user can vote, guest cannot */
+            var personid = utils.get_username(req);
             var client = new db('test', new server('127.0.0.1', 27017, {}));
             client.open(function(err, client) {
                 client.collection('comments', function (err, collection) {

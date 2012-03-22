@@ -1,1 +1,3 @@
 curl --data "login=dliang&password=novell123456&firstname=David&lastname=Liang&email=liangchenye@gmail.com"  http://localhost:3000/person/add
+curl --data "login=fakedliang&password=novell123456&firstname=David&lastname=Liang&email=fakeliangchenye@gmail.com"  http://localhost:3000/person/add
+curl --data "login=fake1dliang&password=novell123456&firstname=David&lastname=Liang&email=fake1liangchenye@gmail.com"  http://localhost:3000/person/add

@@ -1,0 +1,18 @@
+1.
+  {"vote_commentid" : commentid,
+    "score" :   50,
+    "count" : 100};
+
+  {"vote_contentid" : contentid,
+    "score" :   50,
+    "count" : 100};
+
+id begin with 10000
+
+/* the last comment id */
+  {"collection_name": "comment",
+    "id": 10};
+
+/* the last content id */
+  {"collection_name" : "content",
+    "id": 10};

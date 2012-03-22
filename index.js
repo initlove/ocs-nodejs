@@ -31,9 +31,10 @@ app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);
 app.get('/content/download/:contentid/:itemid', content.download);
+app.post('/content/vote/:contentid', content.vote);
 app.get('/comments/get', comments.get);
 app.post('/comments/add', comments.add);
-app.post('/comments/vote', comments.vote);
+app.post('/comments/vote/:commentid', comments.vote);
 
 app.listen(3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
