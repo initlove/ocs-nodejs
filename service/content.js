@@ -72,9 +72,10 @@ exports.list = function (req, res) {
 
 exports.get = function (req, res) {
     var client = new db('test', new server('127.0.0.1', 27017, {}));
+    var contentid = parseInt (req.params.contentid);
     client.open(function(err, client) {
         client.collection('content', function (err, collection) {
-            collection.find({"id" : req.params.contentid}).toArray(function(err, results) {
+            collection.find({"id" : contentid}).toArray(function(err, results) {
                 if (err) {
                     console.log ("System error in get content");
                     res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
@@ -112,10 +113,11 @@ exports.categories = function (req, res) {
 
 exports.download = function (req, res) {
     var client = new db('test', new server('127.0.0.1', 27017, {}));
+    var contentid = parseInt (req.params.contentid);
 
     client.open(function(err, client) {
         client.collection('content', function (err, collection) {
-            collection.find({"id" : req.params.contentid}).toArray(function(err, results) {
+            collection.find({"id" : contentid}).toArray(function(err, results) {
                 if (err) {
                     console.log ("System error in get content");
                     res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
@@ -126,6 +128,7 @@ exports.download = function (req, res) {
                         if (results[0].downloadinfos [i].way == req.params.itemid) {
                             var data = new Array ();
                             data [0] = results[0].downloadinfos [i];
+                            collection.update({"id" : contentid}, {$inc: {"downloads" :1}}, true, true);
                             res.send (utils.message (utils.meta (100), data));
                             return;
                         }

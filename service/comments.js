@@ -89,35 +89,45 @@ function check_content (content, res) {
 
 function add_comment (req, res) {
     var client = new db('test', new server('127.0.0.1', 27017, {}));
+    var contentid = parseInt (req.body["content"]);
+
     client.open(function(err, client) {
         client.collection('content', function (err, content_collection) {
-            content_collection.find({"id" : req.body["content"]}).toArray(function(err, results) {
+            content_collection.find({"id" : contentid}).toArray(function(err, results) {
                 if (results.length == 0) {
                     res.send (utils.message (utils.meta(105, "content id invalid")));
                 } else {
-                    var obj = {"type" :req.body["type"],
+                    utils.generate_id ('comment', function (id) {
+                        if (id == -1) {
+                            res.send (utils.message (utils.meta (110, "System err, should fix in the server")));
+                            return;
+                        }
+                            
+                        var obj = {"id" : id,
+                           "type" :req.body["type"],
                             "content" :req.body["content"],
 	                 		"parent"  :req.body["parent"],
 		    		        "subject" :req.body["subject"],
         	           		"message" :req.body["message"]};
-                    if (req.body["content2"])
-                        obj.content2 = req.body["content2"];
-                    var user = utils.get_username (req);
-                    if (user != undefined) {
-                        obj.user = user;
-                    } else {
-                        obj.guestname = req.body["guestname"];
-                        obj.guestemail = req.body["guestemail"];
-                    }
-                    obj.date = Date();
-                    client.collection('comments', function (err, comment_collection) {
-                        if (err) {
-                            console.log ("System error in add comment ");
+                        if (req.body["content2"])
+                            obj.content2 = req.body["content2"];
+                        var user = utils.get_username (req);
+                        if (user != undefined) {
+                            obj.user = user;
                         } else {
-                            comment_collection.insert (obj); 
-                            content_collection.update({"id" : req.body["content"]}, {$inc: {"comments" :1}}, true, true);
-                            res.send (utils.message (utils.meta(100)));
+                            obj.guestname = req.body["guestname"];
+                            obj.guestemail = req.body["guestemail"];
                         }
+                        obj.date = Date();
+                        client.collection('comments', function (err, comment_collection) {
+                            if (err) {
+                                console.log ("System error in add comment ");
+                            } else {
+                                comment_collection.insert (obj); 
+                                content_collection.update({"id" : contentid}, {$inc: {"comments" :1}}, true, true);
+                                res.send (utils.message (utils.meta(100)));
+                            }
+                        });
                     });
                 }
             });
@@ -157,7 +167,7 @@ vote_comment = function (req, res) {
     /* personid is valid as we check it before */
     var personid = utils.get_username (req);
 
-    var commentid = req.body["commentid"];
+    var commentid = parseInt (req.body["commentid"]);
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     var date = Date();
     client.open(function(err, client) {
@@ -173,21 +183,17 @@ vote_comment = function (req, res) {
 
         /* update the 'summary' table and the 'comment' table */
         client.collection('summary', function (err, collection) {
-            collection.find({"commentid" : commentid}).toArray(function(err, r) {
+            collection.find({"vote_commentid" : commentid}).toArray(function(err, r) {
                 if (r.length == 1) {
                     var score = parseInt (r[0].score);
                     var count = parseInt (r[0].count);
                     var total = count * score + parseInt (req.body["score"]);
                     count ++;
                     score = total / count;
-                    collection.update(
-                        {"commentid": commentid},
-                        {"commentid": commentid,
-                        "count":count,
-                        "score":score}
-                    );
+                    collection.update({"vote_commentid": commentid},
+                        {$set : {"count":count,"score":score}}, true, true);
                     client.collection('comments', function (err, collection) {
-                        collection.update({_id: BSON.ObjectID (commentid)}, {$set: {"score" : score}});
+                        collection.update({"id": commentid}, {$set: {"score" : score}});
                     });
                 } else {
                     var score = parseInt (req.body["score"]);
@@ -197,7 +203,7 @@ vote_comment = function (req, res) {
                         "score": score}
                     );
                     client.collection('comments', function (err, collection) {
-                        collection.update({_id: BSON.ObjectID (commentid)}, {$set: {"score" : score}});
+                        collection.update({"id": commentid}, {$set: {"score" : score}});
                     });
                 }
             });
@@ -219,25 +225,18 @@ exports.vote = function (req, res) {
         return;
     }
 
-    var commentid = req.body["commentid"];
-    if ((commentid == undefined) || (commentid.length == 0)) {
+    if (req.body["commentid"] == undefined) {
         res.send (utils.message (utils.meta (103, "commentid is invalid")));
         return;
     }
-
-    /*TODO: now, I use the _id as the comment id */
-    if(commentid != null && 'number' != typeof commentid && (commentid.length != 12 && commentid.length != 24)) {
-        res.send (utils.message (utils.meta (103, "commentid is invalid")));
-        return;
-    }
-
+    var commentid = parseInt (req.body["commentid"]);   
     var personid = utils.get_username(req);
     account.auth (req, res, function (r) {
         if (r == 0) {           /* success, only auth user can vote, guest cannot */
             var client = new db('test', new server('127.0.0.1', 27017, {}));
             client.open(function(err, client) {
                 client.collection('comments', function (err, collection) {
-                    collection.find({_id: BSON.ObjectID(commentid)}).toArray(function(err, results) {
+                    collection.find({"id": commentid}).toArray(function(err, results) {
                         if (results.length == 0) {
                             res.send (utils.message (utils.meta (101, "comment not found")));
                         } else {

@@ -1,22 +1,21 @@
 var fs = require('fs');
 var $ = require("mongous").Mongous;
+var utils = require("../service/utils.js");
 
 add_category = function (app) {
-    console.log (app.appcategories);
     for (var i = 0; i < app.appcategories.length; i++) {
         var category = app.appcategories[i];
         $('test.category').save ({"name": category});
     }
 };
 
-fs.readFile('./appdata.json', function (err, data) {
-    if (err)
-        console.log ("error in load appdata.json\n");
-    if (data) {
-        var json = JSON.parse(data.toString('utf8'));
-        var len = json.applications.length;
-        for (var i = 0; i < len; i++) {
-            json.applications [i].data = Date();
+add_app = function (json, i, len) {
+    utils.generate_id ('content', function (id) {
+        if (id == -1) {
+            console.log ("System error in generate content id");
+        } else if (i < len){
+            json.applications [i].id = id;
+            json.applications [i].date = Date();
             json.applications [i].comments = 0;
             json.applications [i].downloads = 0;
             json.applications [i].fans = 0;
@@ -30,9 +29,22 @@ fs.readFile('./appdata.json', function (err, data) {
             downloadinfos[0].repo = json.repo;
             downloadinfos[0].pkgname = json.applications[i].pkgname;
             json.applications [i].downloadinfos = downloadinfos;
+            console.log ("we get id " + id +" \n");
             $('test.content').save (json.applications [i]);
             add_category (json.applications [i]);
-            /*TODO: license or lots of other infos should be added */
+
+            add_app (json, parseInt (i) + 1, len);
         }
+    });
+};
+
+fs.readFile('./appdata.json', function (err, data) {
+    if (err)
+        console.log ("error in load appdata.json\n");
+    if (data) {
+        var json = JSON.parse(data.toString('utf8'));
+        var len = json.applications.length;
+                    
+        add_app (json, 0, len);
     }
 });
