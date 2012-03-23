@@ -31,10 +31,19 @@ exports.get_username = function (req) {
     return parts[0];  
 }
 
+/*TODO: bad , should be stronger */
 exports.generate_id = function (collection_name, callback) {
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open(function(err, client) {
-        client.collection('summary', function (err, collection) {
+    var connect = new db('test', new server('127.0.0.1', 27017, {}));
+    connect.open(function(err, database) {
+        if (err) {
+            console.log (err);
+            return callback (-1);
+        }
+        database.collection('summary', function (err, collection) {
+           if (err) {
+                console.log (err);
+                return callback (-1);
+            }
             collection.find ({"collection_name" : collection_name}).toArray (function (err, r) {
                 if (err) {
                     return callback (-1);
