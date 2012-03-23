@@ -49,6 +49,10 @@ exports.list = function (req, res) {
                     res.send (msg);
                 } else {
                     collection.find(query).sort(sort).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
+                        if (err) {
+                            res.send (utils.message (utils.meta (110, "System error in find the query")));
+                            return;
+                        }
                         var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
                         var msg = {"meta" : meta};
                         var data = new Array();

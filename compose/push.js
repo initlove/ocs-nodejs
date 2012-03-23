@@ -14,6 +14,8 @@ var server = require('mongodb').Server;
 var GridStore = require('mongodb').GridStore;
 
 get_icon_uri = function (icon_name) {
+    if (!icon_name)
+        return null;
     var uri;
     var suffix = [".png", ".svg", ".xpm", ".icon"];
     var stat = "";
@@ -56,7 +58,6 @@ add_app = function (json, i, len) {
             json.applications [i].downloadinfos = downloadinfos;
 
             var uri = get_icon_uri (json.applications[i].icon);
-            console.log ("save uri " + uri + "  " + i + " " + id);
 
             if (uri) {
                 var client = new db('test', new server('127.0.0.1', 27017, {}));
