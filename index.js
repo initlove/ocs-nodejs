@@ -31,6 +31,7 @@ app.post('/person/check', account.check);
 app.post('/person/add', account.add);
 app.post('/person/remove', account.remove);
 app.get('/person/data/:personid', account.get);
+app.get('/fan/data/:contentid', fan.get);
 app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);

@@ -11,6 +11,12 @@ exports.meta = function (message_type) {
         case "Server error":
             meta.statuscode = 110;
             break;
+        case "no permission to get fan status":
+            meta.statuscode = 101;
+            break;
+        case "You have already been the fan":
+            meta.statuscode = 102;
+            break;
         case "wrong type":
             meta.statuscode = 104;
             break;
