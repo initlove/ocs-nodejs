@@ -5,6 +5,7 @@ get
 			1 - content; 4 - forum; 7 - knowledgebase; 8 - event
 	contentid: id of the content, in the database, we use content
 	contentid2: ?? no idea, in the database we use contentid2
+    parent: I add it, just want to externed it... default to 0
 	page:	the list page, start with 0
 	pagesize: size of the page
 

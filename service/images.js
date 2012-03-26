@@ -72,7 +72,9 @@ exports.upload = function (req, res, next) {
                     if (id == -1) {
                         res.send (utils.message (utils.meta (110, "System error in upload")));
                     } else {
-                        res.send (utils.message (utils.meta (100)));
+                        var data = new Array();
+                        data [0] = {"uri" : "http://localhost:3000/images/" + id};
+                        res.send (utils.message (utils.meta (100), data));
                     }
                     fs.unlink (files.image.path);
                 });

@@ -19,14 +19,18 @@ exports.get = function (req, res){
         return;
 
     if (req.query.page != undefined)
-        page = req.query.page;
+        page = parseInt(req.query.page);
     if (req.query.pagesize != undefined)
-        pagesize = req.query.pagesize;
+        pagesize = parseInt(req.query.pagesize);
 
-    var query = {"type" : req.query.type, "content" : req.query.content};
+    var query = {"type" : parseInt(req.query.type), "content" : parseInt(req.query.content)};
     if (req.query.content2)
-        query.content2 = req.query.content2;
-
+        query.content2 = parseInt(req.query.content2);
+    if (req.query.parent)
+        query.parent = parseInt(req.query.parent);
+    else
+        query.parent = parseInt(0);
+console.log (query);
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     client.open(function(err, client) {
         client.collection('comments',
@@ -89,6 +93,8 @@ function check_content (content, res) {
 function add_comment (req, res) {
     var client = new db('test', new server('127.0.0.1', 27017, {}));
     var contentid = parseInt (req.body["content"]);
+    var parentid = parseInt (req.body["parent"]);
+    var type = parseInt (req.body["type"]);
 
     client.open(function(err, client) {
         client.collection('content', function (err, content_collection) {
@@ -103,13 +109,13 @@ function add_comment (req, res) {
                         }
                             
                         var obj = {"id" : id,
-                           "type" :req.body["type"],
-                            "content" :req.body["content"],
-	                 		"parent"  :req.body["parent"],
+                           "type" : type,
+                            "content" :contentid,
+	                 		"parent"  :parentid,
 		    		        "subject" :req.body["subject"],
         	           		"message" :req.body["message"]};
                         if (req.body["content2"])
-                            obj.content2 = req.body["content2"];
+                            obj.content2 = parseInt (req.body["content2"]);
                         var user = utils.get_username (req);
                         if (user != undefined) {
                             obj.user = user;
@@ -122,8 +128,16 @@ function add_comment (req, res) {
                             if (err) {
                                 console.log ("System error in add comment ");
                             } else {
-                                comment_collection.insert (obj); 
                                 content_collection.update({"id" : contentid}, {$inc: {"comments" :1}}, true, true);
+                                comment_collection.find ({"parent" : parentid}).toArray(function(err, results) {
+                                    if (results.length == 0) {
+                                        obj.parentid = 0;
+                                        comment_collection.insert (obj); 
+                                    } else {
+                                        comment_collection.insert (obj);
+                                        comment_collection.update ({"id" : parentid}, {$inc: {"childcount" : 1}}, true, true);
+                                    }
+                                });
                                 res.send (utils.message (utils.meta(100)));
                             }
                         });
@@ -135,6 +149,10 @@ function add_comment (req, res) {
 };
 
 exports.add = function (req, res) {
+    if (!req.body) {
+        console.log ("System error, cannot get the req body");
+        return;
+    }
     if (!check_type (req.body["type"], res))
         return;
     /* Donnot check the subject */
