@@ -8,8 +8,8 @@ Vote for one specific content.
     Statuscodes:
         100 - successful
         101 - content not found
+        102 - vote with score between 0 to 100
         200 - too many API requests in the last 15 minutes from your IP address. please try again later. 
 
-    Example: http://api.opendesktop.org/v1/content/vote/12345 with the POST variable vote=good 
+    Example: http://api.opendesktop.org/v1/content/vote/12345 with the POST variable score=100
 
-Examp

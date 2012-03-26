@@ -9,7 +9,7 @@ var utils = require('./utils');
  */
 exports.auth = function (req, res, callback) {
     var header = req.headers.authorization;
-    if (header == undefined) 
+    if (!header)
         return callback (1);
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();
@@ -18,7 +18,7 @@ exports.auth = function (req, res, callback) {
     var password = parts[1];
 
     var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
-    admindb.open (function (error, client) {
+    admindb.open (function (error, admindb) {
         admindb.authenticate(username, password, function (err, val) {
             if (err)
                 return callback (2);
@@ -29,49 +29,49 @@ exports.auth = function (req, res, callback) {
 };
 
 exports.check = function (req, res) {
-    if ((req.body["login"] == undefined) || (req.body["password"] == undefined)) {
-        res.send (utils.message (utils.meta (101, "please specify all mandatory fields")));
+    if (!req.body.login || !req.body.password) {
+        res.send (utils.message (utils.meta ("please specify all mandatory fields")));
         return;
     }
 
     var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
-    admindb.open (function (err, client) {
-        admindb.authenticate(req.body["login"], req.body["password"], function (err, val) {
+    admindb.open (function (err, admindb) {
+        admindb.authenticate(req.body.login, req.body.password, function (err, val) {
             if (err)
-                res.send (utils.message (utils.meta (102, "login not valid")));
+                res.send (utils.message (utils.meta ("login not valid")));
             else
-                res.send (utils.message (utils.meta (100, "successfull / valid account")));
+                res.send (utils.message (utils.meta ("ok")));
         });
     });
 };
 
 function add_account (req, res) {
-    var login = req.body["login"];
-    var password = req.body["password"];
-    var firstname = req.body["firstname"];
-    var lastname = req.body["lastname"];
-    var email = req.body["email"];
+    var login = req.body.login;
+    var password = req.body.password;
+    var firstname = req.body.firstname;
+    var lastname = req.body.lastname;
+    var email = req.body.email;
 
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open (function (err, client) {
-        client.collection('person', function (err, collection) {
-            collection.find({"login" : login}).toArray(function(err, results) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open (function (err, ocs_db) {
+        ocs_db.collection('person', function (err, person_coll) {
+            person_coll.find({"login" : login}).toArray(function(err, results) {
                 if (results.length == 0) {
                     /* password should not be saved */
-                    collection.insert (
+                    person_coll.insert (
                         {"login" : login,
                         "firstname" : firstname,
                         "lastname": lastname,
                         "email": email}
                     );
                     var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
-                    admindb.open (function (err, client) {
+                    admindb.open (function (err, admindb) {
                         admindb.addUser(login, password, function (err, result) {
                             if (err) {
                                 console.log ("System error: add user to admin: "  + login + " ");
-                                res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                                res.send (utils.message (utils.meta ("Server error")));
                             } else {
-                                res.send (utils.message (utils.meta (100)));
+                                res.send (utils.message (utils.meta ("ok")));
                             }
                         });
                     });
@@ -85,60 +85,60 @@ function add_account (req, res) {
 };
 
 exports.add = function (req, res) {
-    var login = req.body["login"];
-    var password = req.body["password"];
-    var firstname = req.body["firstname"];
-    var lastname = req.body["lastname"];
-    var email = req.body["email"];
+    var login = req.body.login;
+    var password = req.body.password;
+    var firstname = req.body.firstname;
+    var lastname = req.body.lastname;
+    var email = req.body.email;
 
-    if ((login == undefined) ||
-        (password == undefined) ||
-        (firstname  == undefined) ||
-        (lastname == undefined) ||
-        (email == undefined)) {
-        res.send (utils.message (utils.meta (101, "please specify all mandatory fields ")));
+    if (!login||
+        !password ||
+        !firstname ||
+        !lastname ||
+        !email) {
+        res.send (utils.message (utils.meta ("please specify all mandatory fields ")));
         return;
     }
 
     var password_filter = /[a-zA-Z0-9]{8,}/;
     if (!password_filter.test(password)) {
-        res.send (utils.message (utils.meta (102, "please specify a valid password")));
+        res.send (utils.message (utils.meta ("please specify a valid password")));
         return;
     }
 
     /*TODO: we did not spec the standard here */
     var login_filter = /[a-zA-Z0-9]{4,}/;
     if (!login_filter.test(login)) {
-        res.send (utils.message (utils.meta (103, "please specify a valid login")));
+        res.send (utils.message (utils.meta ("please specify a valid login")));
         return;
     }
 
     var email_filter = /[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}/;
     if (!email_filter.test(email)) {
-        res.send (utils.message (utils.meta (106, "email invalid")));
+        res.send (utils.message (utils.meta ("please specify a valid email")));
         return;
     }
 
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open(function(err, client) {
-        client.collection('person', function (err, collection) {
-            collection.find({"login" : login}).toArray(function(err, results) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('person', function (err, person_coll) {
+            person_coll.find({"login" : login}).toArray(function(err, results) {
                 if (err) {
                     console.log (err);
-                    res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                    res.send (utils.message (utils.meta ("Server error")));
                     return;
                 }
                 if (results.length > 0) {
-                    res.send (utils.message (utils.meta (104, "login already exists")));
+                    res.send (utils.message (utils.meta ("login already exists")));
                 } else {
-                    collection.find({"email" : email}).toArray(function(err, results) {
+                    person_coll.find({"email" : email}).toArray(function(err, results) {
                         if (err) {
                             console.log (err);
-                            res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                            res.send (utils.message (utils.meta ("Server error")));
                             return;
                         }
                         if (results.length > 0) {
-                            res.send (utils.message (utils.meta (105, "email already taken")));
+                            res.send (utils.message (utils.meta ("email already taken")));
                         } else {
                             add_account (req, res);
                         }
@@ -151,21 +151,21 @@ exports.add = function (req, res) {
 
 function remove_account (req, res) {
     var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
-    admindb.open (function (error, client) {
-        admindb.removeUser(req.body["login"], function (err, result) {
+    admindb.open (function (error, admindb) {
+        admindb.removeUser(req.body.login, function (err, result) {
             if (err) {
-                res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                res.send (utils.message (utils.meta ("Server error")));
             } else {
-                var client = new db('test', new server('127.0.0.1', 27017, {}));
-                client.open(function(err, client) {
-                    client.collection('person', function (err, collection) {
-                        collection.find({"login" : req.body["login"]}).toArray(function(err, results) {
+                var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+                ocs_db.open(function(err, ocs_db) {
+                    ocs_db.collection('person', function (err, person_coll) {
+                        person_coll.find({"login" : req.body.login}).toArray(function(err, results) {
                             if (results.length == 0) {
                                 console.log ("System error: remove the unexisted user?");
-                                res.send (utils.message (utils.meta (110, "system error, should fix in the server")));
+                                res.send (utils.message (utils.meta ("Server error")));
                             } else {
-                                collection.remove({"login" : req.body["login"]});
-                                res.send (utils.message (utils.meta (100)));
+                                person_coll.remove({"login" : req.body.login});
+                                res.send (utils.message (utils.meta ("ok")));
                             }
                         });
                     });
@@ -177,20 +177,20 @@ function remove_account (req, res) {
 };
 
 exports.remove = function (req, res) {
-    var login = req.body["login"];
-    var password = req.body["password"];
+    var login = req.body.login;
+    var password = req.body.password;
 
-    if (login == undefined || password == undefined) {
-        res.send (utils.message (utils.meta (101, "please specify all mandatory fields ")));
+    if (!login || !password) {
+        res.send (utils.message (utils.meta ("please specify all mandatory fields ")));
         return;
     }
 
     /*TODO: find the user first? */
     var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
-    admindb.open (function (error, client) {
+    admindb.open (function (error, admindb) {
         admindb.authenticate(login, password, function (err, val) {
             if (err)
-                res.send (utils.message (utils.meta (102, "not authenticated")));
+                res.send (utils.message (utils.meta ("not authenticated")));
             else
                 remove_account (req, res);
         });
@@ -198,22 +198,20 @@ exports.remove = function (req, res) {
 };
 
 function get_account (req, res) {
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open(function(err, client) {
-        client.collection('person', function (err, collection) {
-            collection.find({"login" : req.params.personid}).toArray(function(err, results) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('person', function (err, person_coll) {
+            person_coll.find({"login" : req.params.personid}).toArray(function(err, results) {
                 if (err) {
                     console.log ("System error in get account " + req.params.personid);
+                    res.send (utils.message (utils.meta ("Server error")));
                 } else if (results.length == 0) {
-                    res.send (utils.message (utils.meta (101, "person not found")));
+                    res.send (utils.message (utils.meta ("person not found")));
                 } else {
                     /*TODO: is private */
                     var data = new Array();
                     data [0] = results[0];
-                    var meta = {"status" : "ok", "statuscode" : 100};
-                    var msg = {"meta" : meta};
-                    msg.data = data;
-                    res.send (msg);
+                    res.send (utils.message (utils.meta ("ok"), data));
                 }
             });
         });
@@ -225,7 +223,7 @@ exports.get = function (req, res) {
         if (r == 0) {
             get_account (req, res);
         } else {
-            res.send (utils.message (utils.meta (103, "no permission")));
+            res.send (utils.message (utils.meta ("no permission to get person info")));
         }
     });
 };

@@ -39,9 +39,7 @@ add_category = function (app) {
 };
 
 add_app = function (json, i, len) {
-    var id = parseInt (i) + 10000;
     if (i < len){
-            json.applications [i].id = id;
             json.applications [i].date = Date();
             json.applications [i].comments = 0;
             json.applications [i].downloads = 0;
@@ -62,12 +60,12 @@ add_app = function (json, i, len) {
             if (uri) {
                 var client = new db('test', new server('127.0.0.1', 27017, {}));
                 client.open(function (err, connection) {
-                    var gridStore = new GridStore(client, id.toString(), 'w+');
+                    var gridStore = new GridStore(client, json.applications[i].icon, 'w+');
                     gridStore.open(function (err, gridStore) {
                         fs.readFile(uri, function (err, imageData) {
                             gridStore.write(imageData, function (err, gridStore) {
                                 gridStore.close(function (err, result) {
-                                    json.applications[i].icon = "http://localhost:3000/images/" + id.toString();
+                                    json.applications[i].icon = "http://localhost:3000/images/" + result._id.toString();
                                     $('test.content').save (json.applications [i]);
                                     add_category (json.applications [i]);
                                     add_app (json, parseInt (i) + 1, len);
@@ -82,13 +80,7 @@ add_app = function (json, i, len) {
                 add_app (json, parseInt (i) + 1, len);
             }
     } else {
-            var connect = new db('test', new server('127.0.0.1', 27017, {}));
-            connect.open(function(err, database) {
-                database.collection('summary', function (err, collection) {
-                    collection.insert ({"collection_name" : "content", "id" : id});
-                    collection.insert ({"collection_name" : "image", "id" : id});
-                });
-            });
+        console.log ("end");
     }
 };
 

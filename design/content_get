@@ -9,6 +9,7 @@ Read content data of one specific content.
     Statuscodes:
         100 - successfull
         101 - content not found
+        102 - invalid content id
         200 - too many API requests in the last 15 minutes from your IP address. please try again later.  //TODO
 
 table:  content

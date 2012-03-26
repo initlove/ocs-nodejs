@@ -1,17 +1,103 @@
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 
-exports.meta = function (status_code, status_message) {
+exports.meta = function (message_type) {
     var meta = {};
-	if (status_code == 100)
-        meta.status = "ok";
-    else
-        meta.status = "fail";
-    meta.statuscode = status_code;
-    if (status_message != undefined) {
-        meta.message = status_message;
+    switch (message_type) {
+        case "ok":
+            meta.status = "ok";
+            meta.statuscode = 100;
+            break;
+        case "Server error":
+            meta.statuscode = 110;
+            break;
+        case "wrong type":
+            meta.statuscode = 104;
+            break;
+        case "not authenticated":
+            meta.statuscode = 102;
+            break;
+        case "person not found":
+            meta.statuscode = 101;
+            break;
+        case "login not valid":
+            meta.statuscode = 102;
+            break;
+        case "please specify all mandatory fields":
+            meta.statuscode = 101;
+            break;
+        case "please specify a valid password":
+            meta.statuscode = 102;
+            break;
+        case "please specify a valid login":
+            meta.statuscode = 103;
+            break;
+        case "login aleady exists":
+            meta.statuscode = 104;
+            break;
+        case "email already taken":
+            meta.statuscode = 105;
+            break;
+        case "please specify a valid email":
+            meta.statuscode = 106;
+            break;
+        case "message or subject must not be empty":
+            meta.statuscode = 102;
+            break;
+        case "no permission to add a comment":
+            meta.statuscode = 103;
+            break;
+        case "no permission to get person info":
+            meta.statuscode = 103;
+            break;
+        case "comment not found":
+            meta.statuscode = 104;
+        case "content must not be empty":
+            meta.statuscode = 101;
+            break;
+        case "content not found":
+            meta.statuscode = 101;
+            break;
+        case "invalid comment id":
+            meta.statuscode = 105;
+            break;
+        case "invalid content id":
+            meta.statuscode = 105;
+            break;
+        case "content item not found":
+            meta.statuscode = 103;
+            break;
+        case "vote with score between 0 and 100":
+            meta.statuscode = 102;
+            break;
+        case "no permission to vote":
+            meta.statuscode = 104;
+            break;
+        case "you have already voted on this content":
+            meta.statuscode = 105;
+            break;
+        case "need to post the file...":
+            meta.statuscode = 101;
+            break;
+        case "please fill with 'image'":
+            meta.statuscode = 102;
+            break;
+        case "invalid image id":
+            meta.statuscode = 103;
+            break;
+        case "Cannot find the image":
+            meta.statuscode = 104;
+            break;
+        default :
+            console.log ("Some meta result was not include: " + mesage_type + "\n");
+            meta.statuscode = 111;
+            break;
     }
-	return meta;
+    if (message_type != "ok") {
+        meta.status = "fail";
+        meta.message = message_type;
+    }
+    return meta;
 }
 
 exports.message = function (meta, data) {
@@ -22,6 +108,13 @@ exports.message = function (meta, data) {
     return msg;
 }
 
+exports.check_id = function (id) {
+    if (id == null || (id.length != 12 && id.length != 24)) {
+        return false;
+    } else
+        return true;
+}
+
 exports.get_username = function (req) {
     var header = req.headers.authorization || '';
     var token = header.split(/\s+/).pop() || '';
@@ -29,33 +122,4 @@ exports.get_username = function (req) {
     var parts = auth.split(":");
      
     return parts[0];  
-}
-
-/*TODO: bad , should be stronger */
-exports.generate_id = function (collection_name, callback) {
-    var connect = new db('test', new server('127.0.0.1', 27017, {}));
-    connect.open(function(err, database) {
-        if (err) {
-            console.log (err);
-            return callback (-1);
-        }
-        database.collection('summary', function (err, collection) {
-           if (err) {
-                console.log (err);
-                return callback (-1);
-            }
-            collection.find ({"collection_name" : collection_name}).toArray (function (err, r) {
-                if (err) {
-                    return callback (-1);
-                } else if (r.length == 0) {
-                    var begin = 10000;
-                    collection.insert ({"collection_name" : collection_name, "id" : begin});
-                    return callback (begin);
-                } else {
-                    collection.update ({"collection_name" : collection_name}, {$inc: {"id":1}}, true, true);
-                    return callback (parseInt(r[0].id) + 1);
-                }
-            });
-        });
-    });
 }

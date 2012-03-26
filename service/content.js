@@ -1,30 +1,31 @@
 var utils = require('./utils');
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
+var ObjectID = require('mongodb').ObjectID;
 var account = require('./account');
 
 exports.list = function (req, res) {
     var page = 0;
     var pagesize = 10;
 
-    if (req.query.page != undefined)
-        page = req.query.page;
-    if (req.query.pagesize != undefined)
-        pagesize = req.query.pagesize;
+    if (req.query.page)
+        page = parseInt (req.query.page);
+    if (req.query.pagesize)
+        pagesize = parseInt (req.query.pagesize);
 
     var query = {};
-    if (req.query.search != undefined) {
+    if (req.query.search) {
         query.$or = new Array();
         query.$or[0] = {"name" : {$regex: req.query.search, $options: 'i'}};
         query.$or[1] = {"summary" : {$regex: req.query.search, $options: 'i'}};
     }
-    if (req.query.categories != undefined) {
+    if (req.query.categories) {
         var category_array = req.query.categories.split ("x");
         query.appcategories = {$in: category_array};
     }
 
     var sort = {};
-    if (req.query.sort != undefined) {
+    if (req.query.sort) {
         if (req.query.sort == "new") {
             sort.date = -1;
         } else if (req.query.sort == "alpha") {
@@ -37,20 +38,19 @@ exports.list = function (req, res) {
     } else {
         sort.date = -1;
     }
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open(function(err, client) {
-        client.collection('content', function (err, collection) {
-            collection.find(query).count(function(err, count) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('content', function (err, content_coll) {
+            content_coll.find(query).count(function(err, count) {
                 if (err) {
-                    res.send (utils.message(utils.meta(110, "System error, should fix in server")));
+                    res.send (utils.message(utils.meta("Server error")));
                 } else if (count == 0) {
                     var meta = {"status" : "ok", "statuscode" : 100, "totalitems": count, "itemsperpage": pagesize};
-                    var msg = {"meta" : meta};
-                    res.send (msg);
+                    res.send (utils.message (meta));
                 } else {
-                    collection.find(query).sort(sort).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
+                    content_coll.find(query).sort(sort).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
                         if (err) {
-                            res.send (utils.message (utils.meta (110, "System error in find the query")));
+                            res.send (utils.message (utils.meta ("Server error")));
                             return;
                         }
                         var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
@@ -73,21 +73,25 @@ exports.list = function (req, res) {
     });
 };
 
-exports.get = function (req, res) {
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    var contentid = parseInt (req.params.contentid);
-    client.open(function(err, client) {
-        client.collection('content', function (err, collection) {
-            collection.find({"id" : contentid}).toArray(function(err, results) {
+exports.get = function(req, res) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var id = req.params.contentid;
+    if (!utils.check_id (id)) {
+        res.send (utils.message (utils.meta ("invalid content id")));
+        return;
+    }
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('content', function(err, content_coll) {
+            content_coll.find({"_id" : ObjectID(id)}).toArray(function (err, results) {
                 if (err) {
                     console.log ("System error in get content");
-                    res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
+                    res.send (utils.message (utils.meta ("Server error")));
                 } else if (results.length == 0) {
-                    res.send (utils.message (utils.meta (101, "content not found")));
+                    res.send (utils.message (utils.meta ("content not found")));
                 } else {
                     var data = new Array();
                     data[0]= results[0];
-                    res.send (utils.message (utils.meta (100), data));
+                    res.send (utils.message (utils.meta ("ok"), data));
                 }
             }); 
         });
@@ -95,48 +99,52 @@ exports.get = function (req, res) {
 };
 
 exports.categories = function (req, res) {
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open(function(err, client) {
-        client.collection('category', function (err, collection) {
-            collection.find().toArray(function(err, results) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('category', function (err, category_coll) {
+            category_coll.find().toArray(function(err, results) {
                 var len = results.length;
-                var meta = {"status" : "ok", "statuscode" : 100, "totalitems" : len};
+                var meta = utils.meta ("ok");
+                meta.totalitems = len;
                 var data = new Array ();
                 for (var i = 0; i < len; i++) {
                     /*TODO: add id */
                     data[i].id = results[i].name;
                     data[i].name = results[i].name;
                 }
-                var msg = {"meta" : meta, "data" : data};
-                res.send (msg);
+                res.send (utils.message (meta, data));
             }); 
         });
     });
 };
 
 exports.download = function (req, res) {
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    var contentid = parseInt (req.params.contentid);
+    var id = req.params.contentid;
+    if (!utils.check_id (id)) {
+        res.send (utils.message (utils.meta ("invalid content id")));
+        return;
+    }
 
-    client.open(function(err, client) {
-        client.collection('content', function (err, collection) {
-            collection.find({"id" : contentid}).toArray(function(err, results) {
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('content', function (err, content_coll) {
+            content_coll.find({"_id" : ObjectID (id)}).toArray(function(err, results) {
                 if (err) {
                     console.log ("System error in get content");
-                    res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
+                    res.send (utils.message (utils.meta ("Server error")));
                 } else if (results.length == 0) {
-                    res.send (utils.message (utils.meta (101, "content not found")));
+                    res.send (utils.message (utils.meta ("content not found")));
                 } else {
-                    for (var i = 0; results[0].downloadinfos [i] != undefined; i++) {
+                    for (var i = 0; results[0].downloadinfos [i]; i++) {
                         if (results[0].downloadinfos [i].way == req.params.itemid) {
                             var data = new Array ();
                             data [0] = results[0].downloadinfos [i];
-                            collection.update({"id" : contentid}, {$inc: {"downloads" :1}}, true, true);
-                            res.send (utils.message (utils.meta (100), data));
+                            content_coll.update({"_id" : ObjectID (id)}, {$inc: {"downloads" :1}}, true, true);
+                            res.send (utils.message (utils.meta ("ok"), data));
                             return;
                         }
                     }
-                    res.send (utils.message (utils.meta (103, "content item not found")));
+                    res.send (utils.message (utils.meta ("content item not found")));
                 }
             });
         });
@@ -144,52 +152,52 @@ exports.download = function (req, res) {
 };
 
 vote_content = function (req, res) {
-    var contentid = parseInt (req.params.contentid);
-    var client = new db('test', new server('127.0.0.1', 27017, {}));
-    client.open(function(err, client) {
+    var id = req.params.contentid;
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
         if (err) {
-            res.send (utils.message (utils.meta (110, "System error, should fix in the server")));
+            res.send (utils.message (utils.meta ("Server error")));
             console.log ("System error in vote comment");
             return;
         } else {
-            res.send (utils.message (utils.meta (100)));
+            res.send (utils.message (utils.meta ("ok")));
         }
 
         /* add to votes table */
-        client.collection('votes', function (err, collection) {
+        ocs_db.collection('votes', function (err, votes_coll) {
             var personid = utils.get_username (req);
             var date = Date();
-            collection.insert (
-                {"contentid" :contentid,
-                "score" :req.body["score"],
+            votes_coll.insert (
+                {"contentid" :id,
+                "score" :req.body.score,
                 "personid" :personid,
                 "date" : date}
                 );
         });
     
         /* update the 'summary' table and the 'content' table */
-        client.collection('summary', function (err, collection) {
-            collection.find({"vote_contentid" : contentid}).toArray(function(err, r) {
+        ocs_db.collection('summary', function (err, summary_coll) {
+            summary_coll.find({"vote_contentid" : id}).toArray(function(err, r) {
                 if (r.length == 1) {
                     var score = parseInt (r[0].score);
                     var count = parseInt (r[0].count);
-                    var total = count * score + parseInt (req.body["score"]);
+                    var total = count * score + parseInt (req.body.score);
                     count ++;
                     score = total / count;
-                    collection.update({"vote_contentid": contentid},
+                    summary_coll.update({"vote_contentid": id},
                         {$set : {"count":count,"score":score}}, true, true);
-                    client.collection('content', function (err, collection) {
-                        collection.update({"id": contentid}, {$set: {"score" : score}});
+                    ocs_db.collection('content', function (err, content_coll) {
+                        content_coll.update({"_id": ObjectID(id)}, {$set: {"score" : score}});
                     });
                 } else {
-                    var score = parseInt (req.body["score"]);
-                    collection.insert(
-                        {"vote_contentid" : contentid,
+                    var score = parseInt (req.body.score);
+                    summary_coll.insert(
+                        {"vote_contentid" : id,
                         "count": 1,
                         "score": score}
                         );
-                    client.collection('content', function (err, collection) {
-                        collection.update({"id": contentid}, {$set: {"score" : score}});
+                    ocs_db.collection('content', function (err, content_coll) {
+                        content_coll.update({"_id": ObjectID(id)}, {$set: {"score" : score}});
                     });
                 }
             });
@@ -198,33 +206,36 @@ vote_content = function (req, res) {
 };
 
 exports.vote = function (req, res) {
-    var score = parseInt (req.body["score"]);
-    var score_valid = false;
-    if (score != undefined) {
-        if ((score >= 0) && (score <= 100)) {
-            score_valid = true;
+    if (req.body.score) {
+        var score = parseInt (req.body.score);
+        if ((score < 0) || (score > 100)) {
+            res.send (utils.message (utils.meta ("vote with score between 0 and 100")));
+            return;
         }
-    }
-    if (score_valid == false) {
-        res.send (utils.message (utils.meta (102, "score is invalid")));
+    } else {
+        res.send (utils.message (utils.meta ("vote with score between 0 and 100")));
         return;
     }
 
-    var contentid = parseInt (req.params.contentid);
+    var id = req.params.contentid;
+    if (!utils.check_id (id)) {
+        res.send (utils.message (utils.meta ("invalid content id")));
+        return;
+    }
     account.auth (req, res, function (r) {
         if (r == 0) {           /* success, only auth user can vote, guest cannot */
             var personid = utils.get_username(req);
-            var client = new db('test', new server('127.0.0.1', 27017, {}));
-            client.open(function(err, client) {
-                client.collection('content', function (err, collection) {
-                    collection.find({"id": contentid}).toArray(function(err, results) {
+            var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+            ocs_db.open(function(err, ocs_db) {
+                ocs_db.collection('content', function (err, content_coll) {
+                    content_coll.find({"_id": ObjectID(id)}).toArray(function(err, results) {
                         if (results.length == 0) {
-                            res.send (utils.message (utils.meta (101, "content not found")));
+                            res.send (utils.message (utils.meta ("content not found")));
                         } else {
-                            client.collection('votes', function (err, collection) {
-                                collection.find({"contentid": contentid, "personid": personid}).toArray(function(err, results) {
+                            ocs_db.collection('votes', function (err, votes_coll) {
+                                votes_coll.find({"contentid": id, "personid": personid}).toArray(function(err, results) {
                                     if (results.length != 0) {
-                                        res.send (utils.message (utils.meta (105, "you have already voted on this content")));
+                                        res.send (utils.message (utils.meta ("you have already voted on this content")));
                                     } else
                                         vote_content (req, res);
                                 });
@@ -234,7 +245,7 @@ exports.vote = function (req, res) {
                 });
             });
         } else {
-            res.send (utils.message (utils.meta (104, "no permission to vote")));
+            res.send (utils.message (utils.meta ("no permission to vote")));
         }
     });
 };
