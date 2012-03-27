@@ -3,7 +3,8 @@ var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 var ObjectID = require('mongodb').ObjectID;
 var account = require('./account');
-
+var dbname = require('./config').db_name;
+var dbaddr = require('./config').db_addr;
 
 function get_fan (req, res) {
     var page = 0;
@@ -15,7 +16,7 @@ function get_fan (req, res) {
         pagesize = parseInt (req.query.pagesize);
 
     var id = req.params.contentid;
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('fan', function (err, fan_coll) {
             fan_coll.find({"contentid": id}).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
@@ -58,7 +59,7 @@ exports.get = function (req, res) {
 function is_fan (req, res, callback) {
     var username = utils.get_username (req);
     var id = req.params.contentid;
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('fan', function (err, fan_coll) {
             fan_coll.find({"contentid": id}).toArray(function (err, results) {
@@ -102,7 +103,7 @@ exports.isfan = function (req, res) {
 function add_fan (req, res) {
     var username = utils.get_username (req);
     var id = req.params.contentid;
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('fan', function (err, fan_coll) {
             fan_coll.find({"contentid": id}).toArray(function (err, results) {
@@ -144,7 +145,7 @@ exports.add = function (req, res) {
 function remove_fan (req, res) {
     var username = utils.get_username (req);
     var id = req.params.contentid;
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('fan', function (err, fan_coll) {
             fan_coll.find({"contentid": id}).toArray(function (err, results) {

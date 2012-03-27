@@ -1,6 +1,8 @@
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 var utils = require('./utils');
+var dbname = require('./config').db_name;
+var dbaddr = require('./config').db_addr;
 
 /* "ok"
  * "no auth info"
@@ -17,7 +19,7 @@ exports.auth = function (req, res, callback) {
     var username = parts[0];
     var password = parts[1];
 
-    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    var admindb = new db(dbname('admin'), new server(dbaddr(), 27017, {}));
     admindb.open (function (error, admindb) {
         admindb.authenticate(username, password, function (err, val) {
             if (err)
@@ -31,7 +33,7 @@ exports.auth = function (req, res, callback) {
 exports.getself = function (req, res) {
     exports.auth (req, res, function (auth_result) {
         if (auth_result == "ok") {
-            var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+            var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
             ocs_db.open (function (err, ocs_db) {
                 ocs_db.collection('person', function (err, person_coll) {
                     person_coll.find({"login" : utils.get_username(req)}).toArray(function(err, results) {
@@ -53,7 +55,7 @@ exports.check = function (req, res) {
         return;
     }
 
-    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    var admindb = new db(dbname('admin'), new server(dbaddr(), 27017, {}));
     admindb.open (function (err, admindb) {
         admindb.authenticate(req.body.login, req.body.password, function (err, val) {
             if (err)
@@ -71,7 +73,7 @@ function add_account (req, res) {
     var lastname = req.body.lastname;
     var email = req.body.email;
 
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open (function (err, ocs_db) {
         ocs_db.collection('person', function (err, person_coll) {
             person_coll.find({"login" : login}).toArray(function(err, results) {
@@ -83,7 +85,7 @@ function add_account (req, res) {
                         "lastname": lastname,
                         "email": email}
                     );
-                    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+                    var admindb = new db(dbname('admin'), new server(dbaddr(), 27017, {}));
                     admindb.open (function (err, admindb) {
                         admindb.addUser(login, password, function (err, result) {
                             if (err) {
@@ -138,7 +140,7 @@ exports.add = function (req, res) {
         return;
     }
 
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('person', function (err, person_coll) {
             person_coll.find({"login" : login}).toArray(function(err, results) {
@@ -169,13 +171,13 @@ exports.add = function (req, res) {
 };
 
 function remove_account (req, res) {
-    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    var admindb = new db(dbname('admin'), new server(dbaddr(), 27017, {}));
     admindb.open (function (error, admindb) {
         admindb.removeUser(req.body.login, function (err, result) {
             if (err) {
                 res.send (utils.message (utils.meta ("Server error")));
             } else {
-                var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+                var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
                 ocs_db.open(function(err, ocs_db) {
                     ocs_db.collection('person', function (err, person_coll) {
                         person_coll.find({"login" : req.body.login}).toArray(function(err, results) {
@@ -205,7 +207,7 @@ exports.remove = function (req, res) {
     }
 
     /*TODO: find the user first? */
-    var admindb = new db('admin', new server('127.0.0.1', 27017, {}));
+    var admindb = new db(dbname('admin'), new server(dbaddr(), 27017, {}));
     admindb.open (function (error, admindb) {
         admindb.authenticate(login, password, function (err, val) {
             if (err)
@@ -217,7 +219,7 @@ exports.remove = function (req, res) {
 };
 
 function get_account (req, res) {
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('person', function (err, person_coll) {
             person_coll.find({"login" : req.params.personid}).toArray(function(err, results) {
@@ -246,3 +248,63 @@ exports.get = function (req, res) {
         }
     });
 };
+
+function search_account (req, res) {
+    var page = 0;
+    var pagesize = 10;
+
+    if (req.query.page)
+        page = parseInt (req.query.page);
+    if (req.query.pagesize)
+        pagesize = parseInt (req.query.pagesize);
+
+    /*TODO: search other fields */
+    var query = {};
+    if (req.query.name) {
+        query.$or = new Array();
+        query.$or[0] = {"login" : {$regex: req.query.name, $options: 'i'}};
+        query.$or[1] = {"firstname" : {$regex: req.query.name, $options: 'i'}};
+        query.$or[2] = {"lastname" : {$regex: req.query.name, $options: 'i'}};
+    }
+
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('person', function (err, person_coll) {
+            person_coll.find(query).count(function(err, count) {
+                if (err) {
+                    res.send (utils.message(utils.meta("Server error")));
+                } else if (count == 0) {
+                    var meta = {"status" : "ok", "statuscode" : 100, "totalitems": count, "itemsperpage": pagesize};
+                    res.send (utils.message (meta));
+                } else {
+                    person_coll.find(query).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
+                        var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
+                        var msg = {"meta" : meta};
+                        var data = new Array();
+                        if (results.length == 0) {
+                            res.send (msg);
+                        } else {
+                            for (var i = 0; (i < results.length) && (i < pagesize); i++) {
+                                /*TODO: get the useful attr */
+                                data [i] = results [i];
+                            }
+                            msg.data = data;
+                            res.send (msg);
+                        }
+                    });
+                }
+            });
+        });
+    });
+};
+
+exports.search = function (req, res) {
+    exports.auth (req, res, function (auth_result) {
+        if (auth_result == "ok") {
+            search_account (req, res);
+        } else {
+            res.send (utils.message (utils.meta ("no permission to get person info")));
+        }
+    });
+};
+

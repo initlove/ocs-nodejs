@@ -4,6 +4,8 @@ var ObjectID = require('mongodb').ObjectID;
 var GridStore = require('mongodb').GridStore;
 var fs = require('fs');
 var utils = require('./utils');
+var dbname = require('./config').db_name;
+var dbaddr = require('./config').db_addr;
 
 exports.get = function (req, res) {
     var imageid = req.params.imageid;
@@ -12,7 +14,7 @@ exports.get = function (req, res) {
         return;
     }
 
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function (err, ocs_db) {
         var gridStore = new GridStore(ocs_db, ObjectID (imageid), 'r');
         gridStore.open(function (err, gridStore) {
@@ -37,7 +39,7 @@ exports.get = function (req, res) {
 
 exports.save_image = function (filename, path, callback) {
     /*TODO: in every 'err', I should callback -1 */
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function (err, connection) {
     var gridStore = new GridStore(ocs_db, filename, 'w+');
         gridStore.open(function (err, gridStore) {

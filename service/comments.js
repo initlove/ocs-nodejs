@@ -9,6 +9,8 @@ var server = require('mongodb').Server;
 var ObjectID = require('mongodb').ObjectID;
 var utils = require('./utils');
 var account = require('./account');
+var dbname = require('./config').db_name;
+var dbaddr = require('./config').db_addr;
 
 exports.get = function (req, res){
     var page = 0;
@@ -31,7 +33,7 @@ exports.get = function (req, res){
         query.parent = req.query.parent;
     else
         query.parent = '0';
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('comments', function (err, comments_coll) {
             comments_coll.find(query).skip (page*pagesize).limit (pagesize).toArray(function(err, results) {
@@ -91,7 +93,7 @@ function add_comment (req, res) {
     var parentid = req.body.parent;
     var type = parseInt (req.body.type);
 
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('content', function (err, content_coll) {
             content_coll.find({"_id" : ObjectID(contentid)}).toArray(function(err, results) {
@@ -183,7 +185,7 @@ exports.add = function (req, res) {
 
 vote_comment = function (req, res) {
     var id = req.params.commentid;
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         if (err) {
             res.send (utils.message (utils.meta ("Server error")));
@@ -254,7 +256,7 @@ exports.vote = function (req, res) {
     account.auth (req, res, function (auth_result) {
         if (auth_result == "ok") {           /* success, only auth user can vote, guest cannot */
             var personid = utils.get_username(req);
-            var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+            var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
             ocs_db.open(function(err, ocs_db) {
                 ocs_db.collection('comments', function (err, comments_coll) {
                     comments_coll.find({"_id": ObjectID (id)}).toArray(function(err, results) {

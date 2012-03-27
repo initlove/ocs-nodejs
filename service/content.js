@@ -3,6 +3,8 @@ var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 var ObjectID = require('mongodb').ObjectID;
 var account = require('./account');
+var dbname = require('./config').db_name;
+var dbaddr = require('./config').db_addr;
 
 /* "ok"
  * "content not found"
@@ -13,7 +15,7 @@ exports.exist = function (id, callback) {
     if (!utils.check_id (id))
         return callback ("invalid content id");
 
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('content', function (err, content_coll) {
             content_coll.find({"_id": ObjectID (id)}).count(function(err, count) {
@@ -64,7 +66,7 @@ exports.list = function (req, res) {
     } else {
         sort.date = -1;
     }
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('content', function (err, content_coll) {
             content_coll.find(query).count(function(err, count) {
@@ -100,7 +102,7 @@ exports.list = function (req, res) {
 };
 
 exports.get = function(req, res) {
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     var id = req.params.contentid;
     if (!utils.check_id (id)) {
         res.send (utils.message (utils.meta ("invalid content id")));
@@ -125,7 +127,7 @@ exports.get = function(req, res) {
 };
 
 exports.categories = function (req, res) {
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('category', function (err, category_coll) {
             category_coll.find().toArray(function(err, results) {
@@ -151,7 +153,7 @@ exports.download = function (req, res) {
         return;
     }
 
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('content', function (err, content_coll) {
             content_coll.find({"_id" : ObjectID (id)}).toArray(function(err, results) {
@@ -179,7 +181,7 @@ exports.download = function (req, res) {
 
 vote_content = function (req, res) {
     var id = req.params.contentid;
-    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         if (err) {
             res.send (utils.message (utils.meta ("Server error")));
@@ -249,7 +251,7 @@ exports.vote = function (req, res) {
             exports.exist (id, function (exist_result) {
                 if (exist_result == "ok") {
                     var personid = utils.get_username(req);
-                    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+                    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
                     ocs_db.open(function(err, ocs_db) {
                         ocs_db.collection('votes', function (err, votes_coll) {
                             votes_coll.find({"contentid": id, "personid": personid}).toArray(function(err, results) {

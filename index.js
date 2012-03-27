@@ -36,6 +36,7 @@ app.post('/person/add', account.add);
 app.post('/person/remove', account.remove);
 app.get('/person/data/:personid', account.get);
 app.get('/person/self', account.getself);
+app.get('/person/data', account.search);
 
 app.get('/fan/data/:contentid', fan.get);
 app.get('/fan/status/:contentid', fan.isfan);

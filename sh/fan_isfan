@@ -1,0 +1,19 @@
+Syntax: /v1/fan/status/"contentid"
+HTTP Method: GET
+URL Arguments: contentid - Id of the content entry where you want to get the fan status from.
+Result: fan xml Possible stati are "fan" or "notfan"
+Statuscodes: Syntax: /v1/fan/status/"contentid"
+HTTP Method: GET
+URL Arguments: contentid - Id of the content entry where you want to get the fan status from.
+Result: fan xml Possible stati are "fan" or "notfan"
+Statuscodes: 
+
+
+fan collection
+
+  contentid: [
+            personid:   initlove,
+            date : 
+        ],
+        [
+        ]

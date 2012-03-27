@@ -1,1 +1,1 @@
-curl 'http://localhost:3000/comments/get?type=1&content=linguist4.desktop&content2=c2'
+curl 'http://localhost:3000/comments/get?type=1&content=4f701cf7e644f516f7f73403'

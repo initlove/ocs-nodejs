@@ -16,6 +16,7 @@ exports.get = function (req, res) {
     services[i++] = '/person/remove';
     services[i++] = '/person/data/:personid';
     services[i++] = '/person/self';
+    services[i++] = '/person/data';
 
     services[i++] = '/fan/data/:contentid';
     services[i++] = '/fan/status/:contentid';
@@ -39,3 +40,22 @@ exports.get = function (req, res) {
 
     res.send (utils.message (utils.meta ("ok"), data));
 };
+
+exports.db_addr = function () {
+    return "127.0.0.1";
+};
+
+exports.db_name = function (collection_name) {
+    if (!collection_name)
+        return "test";
+
+    switch (collection_name) {
+        case "admin":
+            return "admin";
+            break;
+        default:
+            return "test";
+            break;
+    }
+};
+              
