@@ -2,15 +2,15 @@ var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 var utils = require('./utils');
 
-/* 0: success,
- * 1: no basic auth info
- * 2: fail to auth
- * 3 and others  not defined yet
+/* "ok"
+ * "no auth info"
+ * "fail to auth"
  */
 exports.auth = function (req, res, callback) {
     var header = req.headers.authorization;
     if (!header)
-        return callback (1);
+        return callback ("no auth info");
+
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();
     var parts = auth.split(":");
@@ -21,10 +21,29 @@ exports.auth = function (req, res, callback) {
     admindb.open (function (error, admindb) {
         admindb.authenticate(username, password, function (err, val) {
             if (err)
-                return callback (2);
+                return callback ("fail to auth");
             else
-                return callback (0);
+                return callback ("ok");
         });
+    });
+};
+
+exports.getself = function (req, res) {
+    exports.auth (req, res, function (auth_result) {
+        if (auth_result == "ok") {
+            var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+            ocs_db.open (function (err, ocs_db) {
+                ocs_db.collection('person', function (err, person_coll) {
+                    person_coll.find({"login" : utils.get_username(req)}).toArray(function(err, results) {
+                        var data = new Array ();
+                        data [0] = results [0];
+                        res.send(utils.message (utils.meta ("ok"), data));
+                    });
+                });
+            });
+        } else {
+            res.send (utils.message (utils.meta ("no permission to get person info")));
+        }
     });
 };
 
@@ -219,8 +238,8 @@ function get_account (req, res) {
 };
 
 exports.get = function (req, res) {
-    exports.auth (req, res, function (r) {
-        if (r == 0) {
+    exports.auth (req, res, function (auth_result) {
+        if (auth_result == "ok") {
             get_account (req, res);
         } else {
             res.send (utils.message (utils.meta ("no permission to get person info")));

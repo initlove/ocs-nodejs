@@ -245,7 +245,7 @@ exports.vote = function (req, res) {
 
     var id = req.params.contentid;
     account.auth (req, res, function (auth_result) {
-        if (auth_result == 0) {           /* success, only auth user can vote, guest cannot */
+        if (auth_result == "ok") {           /* success, only auth user can vote, guest cannot */
             exports.exist (id, function (exist_result) {
                 if (exist_result == "ok") {
                     var personid = utils.get_username(req);

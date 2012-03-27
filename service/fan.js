@@ -41,8 +41,8 @@ function get_fan (req, res) {
 };
 
 exports.get = function (req, res) {
-    account.auth (req, res, function (r) {
-        if (r == 0) {   /* only authenticated user can use get */
+    account.auth (req, res, function (auth_result) {
+        if (auth_result == "ok") {   /* only authenticated user can use get */
             content.exist (req.params.contentid, function (exist_result) {
                 if (exist_result == "ok") {
                     get_fan (req, res);
@@ -78,7 +78,7 @@ function is_fan (req, res, callback) {
 
 exports.isfan = function (req, res) {
     account.auth (req, res, function (auth_result) {
-        if (auth_result == 0) {   /* only authenticated user can use get */
+        if (auth_result == "ok") {   /* only authenticated user can use get */
             content.exist (req.params.contentid, function (exist_result) {
                 if (exist_result == "ok") {
                     is_fan (req, res, function (fan_result) {
@@ -122,7 +122,7 @@ function add_fan (req, res) {
 
 exports.add = function (req, res) {
     account.auth (req, res, function (auth_result) {
-        if (auth_result == 0) {   /* only authenticated user can use get */
+        if (auth_result == "ok") {   /* only authenticated user can use get */
             content.exist (req.params.contentid, function (exist_result) {
                 if (exist_result == "ok") {
                     is_fan (req, res, function (fan_result) {
@@ -164,7 +164,7 @@ function remove_fan (req, res) {
 
 exports.remove = function (req, res) {
     account.auth (req, res, function (auth_result) {
-        if (auth_result == 0) {   /* only authenticated user can use get */
+        if (auth_result == "ok") {   /* only authenticated user can use get */
             content.exist (req.params.contentid, function (exist_result) {
                 if (exist_result == "ok") {
                     is_fan (req, res, function (fan_result) {

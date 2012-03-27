@@ -17,6 +17,9 @@ exports.meta = function (message_type) {
         case "You have already been the fan":
             meta.statuscode = 102;
             break;
+        case "You are not the fan":
+            meta.statuscode = 102;
+            break;
         case "wrong type":
             meta.statuscode = 104;
             break;

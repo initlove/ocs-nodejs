@@ -155,19 +155,26 @@ exports.add = function (req, res) {
     if (!check_content (req.body.content, res))
         return;
 
-    account.auth (req, res, function (r) {
-        if (r == 0) {           /* success */
-            add_comment (req, res);
-        } else if (r == 1) {    /* no user and password */
-            if ((req.body.guestname == null) || (req.body.guestemail == null)) {
-                res.send (utils.message (utils.meta("no permission to add a comment")));
-            } else {
+    account.auth (req, res, function (auth_result) {
+        switch (auth_result) {
+            case "ok":
                 add_comment (req, res);
-            }
-        } else if (r == 2) {    /* we have user:password, but failed */
-            res.send (utils.message (utils.meta("no permission to add a comment")));
-        } else {    /*TODO: ? maybe the apis limitation  */
-            console.log (r);
+                break;
+            case "no auth info":
+                if ((req.body.guestname == null) || (req.body.guestemail == null)) {
+                    res.send (utils.message (utils.meta("no permission to add a comment")));
+                } else {
+                    add_comment (req, res);
+                }
+                break;
+            case "fail to auth":
+                res.send (utils.message (utils.meta("no permission to add a comment")));
+                break;
+            default:
+                /*TODO: ? maybe the apis limitation  */
+                res.send (utils.message (utils.meta (auth_result)));
+                console.log (auth_result);
+                break;
         }
     });
 
@@ -244,8 +251,8 @@ exports.vote = function (req, res) {
         res.send (utils.message (utils.meta ("invalid comment id")));
         return;
     }
-    account.auth (req, res, function (r) {
-        if (r == 0) {           /* success, only auth user can vote, guest cannot */
+    account.auth (req, res, function (auth_result) {
+        if (auth_result == "ok") {           /* success, only auth user can vote, guest cannot */
             var personid = utils.get_username(req);
             var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
             ocs_db.open(function(err, ocs_db) {

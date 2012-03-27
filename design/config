@@ -1,0 +1,24 @@
+get some basic API configuration information
+
+    Syntax: /v1/config
+    Method: GET
+    Statuscodes:
+        100 - successful 
+
+<?xml version="1.0"?>
+<ocs>
+ <meta>
+  <status>ok</status>
+  <statuscode>100</statuscode>
+  <message></message>
+ </meta>
+ <data>
+  <version>1.4</version>
+  <website>openDesktop.org</website>
+  <host>api.openDesktop.org</host>
+  <contact>frank@openDesktop.org</contact>
+  <ssl>true</ssl>
+ </data>
+</ocs>
+
+I add the supported services list to show which service is done here.
