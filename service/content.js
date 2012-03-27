@@ -4,6 +4,32 @@ var server = require('mongodb').Server;
 var ObjectID = require('mongodb').ObjectID;
 var account = require('./account');
 
+/* "ok"
+ * "content not found"
+ * "invalid content id"
+ * "Server error"
+ */
+exports.exist = function (id, callback) {
+    if (!utils.check_id (id))
+        return callback ("invalid content id");
+
+    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        ocs_db.collection('content', function (err, content_coll) {
+            content_coll.find({"_id": ObjectID (id)}).count(function(err, count) {
+                if (err) {
+                    return callback ("Server error");
+                } else if (count == 0) {
+                    return callback ("content not found");
+                } else {
+                    return callback ("ok");
+                }
+            });
+        });
+    });
+};
+
+
 exports.list = function (req, res) {
     var page = 0;
     var pagesize = 10;
@@ -218,31 +244,25 @@ exports.vote = function (req, res) {
     }
 
     var id = req.params.contentid;
-    if (!utils.check_id (id)) {
-        res.send (utils.message (utils.meta ("invalid content id")));
-        return;
-    }
-    account.auth (req, res, function (r) {
-        if (r == 0) {           /* success, only auth user can vote, guest cannot */
-            var personid = utils.get_username(req);
-            var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
-            ocs_db.open(function(err, ocs_db) {
-                ocs_db.collection('content', function (err, content_coll) {
-                    content_coll.find({"_id": ObjectID(id)}).toArray(function(err, results) {
-                        if (results.length == 0) {
-                            res.send (utils.message (utils.meta ("content not found")));
-                        } else {
-                            ocs_db.collection('votes', function (err, votes_coll) {
-                                votes_coll.find({"contentid": id, "personid": personid}).toArray(function(err, results) {
-                                    if (results.length != 0) {
-                                        res.send (utils.message (utils.meta ("you have already voted on this content")));
-                                    } else
-                                        vote_content (req, res);
-                                });
+    account.auth (req, res, function (auth_result) {
+        if (auth_result == 0) {           /* success, only auth user can vote, guest cannot */
+            exports.exist (id, function (exist_result) {
+                if (exist_result == "ok") {
+                    var personid = utils.get_username(req);
+                    var ocs_db = new db('test', new server('127.0.0.1', 27017, {}));
+                    ocs_db.open(function(err, ocs_db) {
+                        ocs_db.collection('votes', function (err, votes_coll) {
+                            votes_coll.find({"contentid": id, "personid": personid}).toArray(function(err, results) {
+                                if (results.length != 0) {
+                                    res.send (utils.message (utils.meta ("you have already voted on this content")));
+                                } else
+                                    vote_content (req, res);
                             });
-                        }
+                        });
                     });
-                });
+                } else {
+                        res.send (utils.message (utils.meta (exist_result)));
+                }
             });
         } else {
             res.send (utils.message (utils.meta ("no permission to vote")));
