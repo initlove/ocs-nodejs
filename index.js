@@ -8,15 +8,16 @@ var content = require('./service/content');
 var comments = require('./service/comments');
 var account = require('./service/account');
 var images = require('./service/images');
+var message = require('./service/message');
 var express = require('express');
 var form = require('connect-form');
 
 var app = module.exports = express.createServer(
-        form ()
 );
 // Configuration
 
-app.configure(function(){   
+app.configure(function(){
+   app.use(express.bodyParser()); 
 // I remove it as I don't know what happens inside, the upload complete function will not emit..
 //    app.use(express.methodOverride());
 });
@@ -37,6 +38,8 @@ app.post('/person/remove', account.remove);
 app.get('/person/data/:personid', account.get);
 app.get('/person/self', account.getself);
 app.get('/person/data', account.search);
+
+app.get('/message', message.folders);
 
 app.get('/fan/data/:contentid', fan.get);
 app.get('/fan/status/:contentid', fan.isfan);

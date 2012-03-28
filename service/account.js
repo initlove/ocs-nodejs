@@ -106,6 +106,7 @@ function add_account (req, res) {
 };
 
 exports.add = function (req, res) {
+    console.log (req);
     var login = req.body.login;
     var password = req.body.password;
     var firstname = req.body.firstname;
