@@ -1,6 +1,7 @@
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 
+/*TODO: should we have statuscode ? */
 exports.meta = function (message_type) {
     var meta = {};
     switch (message_type) {
@@ -16,6 +17,18 @@ exports.meta = function (message_type) {
             break;
         case "You need to login":
             meta.statuscode = 101;
+            break;
+        case "user not found":
+            meta.statuscode = 102;
+            break;
+        case "You can not send a message to yourself":
+            meta.statuscode = 103;
+            break;
+        case "subject or message not found":
+            meta.statuscode = 104;
+            break;
+        case "You should name who the receiver is":
+            meta.statuscode = 105;
             break;
         case "You have already been the fan":
             meta.statuscode = 102;
@@ -127,7 +140,7 @@ exports.check_id = function (id) {
         return true;
 }
 
-exports.get_username = function (req) {
+exports.get_userid = function (req) {
     var header = req.headers.authorization || '';
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();

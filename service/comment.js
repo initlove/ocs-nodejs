@@ -7,7 +7,7 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var commentsSchema = new Schema({
-    _id: {type:ObjectId, select:false}
+    _id: {type:ObjectId, select:false},
     ,id: String /* id is just the _id */
     ,type: String
     ,contentid: {type:String, required: true}
@@ -46,7 +46,7 @@ commentsSchema.path('guestemail').validate(function (v){
 mongoose.connect('mongodb://localhost/test');
 var CommentModel = mongoose.model('comments', commentsSchema);
 
-exports.valid = function (id, callback) {
+exports.valid (id, callback) {
     CommentModel.findById (id, function (err, doc) {
         if (err)
             callback (false);
@@ -77,16 +77,17 @@ function real_add_comment (req, res) {
             }); 
 
             if (req.body.parent != 0) {
-                CommentModel.update ({_id: req.body.parent}, {$inc: {"childcount" :1}}, function (err) {
-                    if (err)
+                CommentModel.update ({_id: req.body.parent}, {$inc: {"childcount" :1}, function (err) {
+                    if (err) {
                         console.log ("Unable to update the parent child count");
-                });
+                    } 
+                }
             }
-            ContentModel.update ({_id: req.body.content}, {$inc: {"comments":1}}, function (err) {
+            ContentModel.update ({_id: req.body.content}, {$inc: {{"comments":1}, function (err) {
                 if (err) {
                     console.log ("Unable to update the content comment counts");
                 }
-            });
+            }
             res.send (utils.message (utils.meta ("ok")));
             return;
         }
@@ -120,7 +121,7 @@ function add_comment (req, res) {
                     } else {
                         res.send (utils.message (utils.meta ("invalid parent id")));
                     }
-                });
+                }
             } else {
                 real_add_comment (req, res);
             }
@@ -197,7 +198,7 @@ exports.get = function (req, res) {
 
 exports.vote = function (req, res) {
     var id = req.params.commentid;
-    exports.valid (id, function (r) {
+    exports.valid (id, callback (r) {
         if (r) {
             vote.vote ("comments", id, req, function (msg, score) {
                 if (msg == "ok") {

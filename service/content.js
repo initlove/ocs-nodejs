@@ -1,36 +1,92 @@
 var utils = require('./utils');
-var db = require('mongodb').Db;
-var server = require('mongodb').Server;
-var ObjectID = require('mongodb').ObjectID;
-var account = require('./account');
-var dbname = require('./config').db_name;
-var dbaddr = require('./config').db_addr;
+var vote = require('./vote');
+var express = require('express');
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+var ObjectId = Schema.ObjectId;
 
-/* "ok"
- * "content not found"
- * "invalid content id"
- * "Server error"
- */
-exports.exist = function (id, callback) {
-    if (!utils.check_id (id))
-        return callback ("invalid content id");
+var downloadDetailSchema = new Schema ({
+    _id: {type: ObjectId, select: false}
+    ,way: Number
+    ,type: String
+    ,price: Number
+    ,link: String
+    ,name: String
+    ,size: Number
+    ,fingerprint: String
+    ,signature: String
+    ,packagename: String
+    ,repository: String
+});
 
-    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
-    ocs_db.open(function(err, ocs_db) {
-        ocs_db.collection('content', function (err, content_coll) {
-            content_coll.find({"_id": ObjectID (id)}).count(function(err, count) {
-                if (err) {
-                    return callback ("Server error");
-                } else if (count == 0) {
-                    return callback ("content not found");
-                } else {
-                    return callback ("ok");
-                }
-            });
-        });
+var homepageDetailSchema = new Schema ({
+    url: String
+    ,type: String
+});
+
+var categorySchema = new Schema ({
+    id: String
+    ,name: String
+});
+
+var contentSchema = new Schema({
+    _id: {type: ObjectId, select: false}
+    ,id: {type: ObjectId, auto: true}
+    ,name: {type: String, required: true}
+    ,type: {type: String, required: true}
+    ,typeid: String
+    ,typename: String
+    ,language: String
+    ,personid: String
+    ,depend: String
+    ,description: String
+    ,summary: String
+    ,licensetype: Number
+    ,license: String
+    ,feedbackurl: String
+    ,version: String
+    ,changelog: String
+    ,donation: String
+    ,donationreason: String
+    ,osbsproject: String
+    ,osbspackage: String
+    ,score: {type: Number, default:50}
+    ,comments: {type: Number, default: 0}
+    ,fans: {type: Number, default: 0}
+    ,downloads: {type: Number, default:0}
+    ,download: {type: [downloadDetailSchema], default:[]}
+    ,homepage: {type: [homepageDetailSchema], default:[]}
+    ,smallpreview: {type: [String], default:[]}
+    ,preview: {type: [String], default:[]}
+    ,icon: {type: [String], default:[]}
+    ,video: {type: [String], default:[]}
+    ,created: {type: Date, default: Date.now}
+    ,changed: Date
+});
+
+/*TODO: disconnect it ?  or keep it ? */
+mongoose.connect('mongodb://localhost/test');
+var ContentModel = mongoose.model('content', contentSchema);
+var CategoryModel = mongoose.model('category', categorySchema);
+
+exports.valid = function (id, callback) {
+    ContentModel.findOne ({"id":id}, function (err, doc) {
+        if (err)
+            callback (false);
+        else if (doc)
+            callback (true);
+        else
+            callback (false);
     });
 };
 
+exports.add = function (req, res) {
+    var content = new ContentModel();
+    content.name = "second irst app";
+    content.type = "no idea";
+    content.save(function(err){
+    });
+}
 
 exports.list = function (req, res) {
     var page = 0;
@@ -44,230 +100,114 @@ exports.list = function (req, res) {
     var query = {};
     if (req.query.search) {
         query.$or = new Array();
-        query.$or[0] = {"name" : {$regex: req.query.search, $options: 'i'}};
-        query.$or[1] = {"summary" : {$regex: req.query.search, $options: 'i'}};
+        query.$or[0] = {"name" : new RegExp (req.query.search, 'i')};
+        query.$or[1] = {"summary" : new RegExp (req.query.search, 'i')};
     }
     if (req.query.categories) {
         var category_array = req.query.categories.split ("x");
         query.appcategories = {$in: category_array};
     }
 
-    var sort = {};
+    var sort_filed = 'date';
     if (req.query.sort) {
         if (req.query.sort == "new") {
-            sort.date = -1;
         } else if (req.query.sort == "alpha") {
-            sort.id = -1;
+            sort_filed = 'id';
         } else if (req.query.sort == "high") {
-            sort.score = -1;
+            sort_filed = 'score';
         } else if (req.query.sort == "down") {
-            sort.downloads = -1;
+            sort_filed = 'downloads';
         }
-    } else {
-        sort.date = -1;
     }
-    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
-    ocs_db.open(function(err, ocs_db) {
-        ocs_db.collection('content', function (err, content_coll) {
-            content_coll.find(query).count(function(err, count) {
-                if (err) {
-                    res.send (utils.message(utils.meta("Server error")));
-                } else if (count == 0) {
-                    var meta = {"status" : "ok", "statuscode" : 100, "totalitems": count, "itemsperpage": pagesize};
-                    res.send (utils.message (meta));
-                } else {
-                    content_coll.find(query).sort(sort).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
-                        if (err) {
-                            res.send (utils.message (utils.meta ("Server error")));
-                            return;
-                        }
-                        var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
-                        var msg = {"meta" : meta};
-                        var data = new Array();
-                        if (results.length == 0) {
-                            res.send (msg);
-                        } else {
-                            for (var i = 0; (i < results.length) && (i < pagesize); i++) {
-                                /*TODO: get the useful attr */
-                                data [i] = results [i];
-                            }
-                            msg.data = data;
-                            res.send (msg);
-                        }
-                    });
-                }
-            });
-        });
+    ContentModel.count(query, function (err, count) {
+        if (err) {
+            res.send (utils.message(utils.meta("Server error")));
+            console.log (err);
+        } else {
+            var meta = utils.meta("ok");
+            meta.totalitems = count;
+            meta.itemsperpage = pagesize;
+            if (count > page*pagesize) {
+                ContentModel.find(query).asc(sort_filed).skip(page*pagesize).limit(pagesize).exec (function (err, docs) {
+                    if (err) {
+                        res.send (utils.message(utils.meta("Server error")));
+                        console.log (err);
+                    } else 
+                        res.send (utils.message(meta, docs));
+                });
+            } else {
+                res.send (utils.message(meta));
+            }
+        }
     });
 };
 
 exports.get = function(req, res) {
-    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     var id = req.params.contentid;
-    if (!utils.check_id (id)) {
-        res.send (utils.message (utils.meta ("invalid content id")));
-        return;
-    }
-    ocs_db.open(function(err, ocs_db) {
-        ocs_db.collection('content', function(err, content_coll) {
-            content_coll.find({"_id" : ObjectID(id)}).toArray(function (err, results) {
-                if (err) {
-                    console.log ("System error in get content");
-                    res.send (utils.message (utils.meta ("Server error")));
-                } else if (results.length == 0) {
-                    res.send (utils.message (utils.meta ("content not found")));
-                } else {
-                    var data = new Array();
-                    data[0]= results[0];
-                    res.send (utils.message (utils.meta ("ok"), data));
-                }
-            }); 
-        });
+    ContentModel.findOne ({"id": id}, function (err, doc) {
+        if (err) {
+            res.send (utils.message (utils.meta ("Server error")));
+        } else if (doc) {
+            res.send (utils.message (utils.meta ("ok"), doc));
+        } else {
+            res.send (utils.message (utils.meta ("content not found")));
+        }
     });
 };
 
 exports.categories = function (req, res) {
-    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
-    ocs_db.open(function(err, ocs_db) {
-        ocs_db.collection('category', function (err, category_coll) {
-            category_coll.find().toArray(function(err, results) {
-                var len = results.length;
-                var meta = utils.meta ("ok");
-                meta.totalitems = len;
-                var data = new Array ();
-                for (var i = 0; i < len; i++) {
-                    /*TODO: add id */
-                    data[i].id = results[i].name;
-                    data[i].name = results[i].name;
-                }
-                res.send (utils.message (meta, data));
-            }); 
-        });
+    CategoryModel.find({}, function (err, docs) {
+        if (err)
+            res.end (utils.message (utils.meta ("Server error")));
+        else
+            res.send (utils.message (utils.meta ("ok"), docs));
     });
 };
 
 exports.download = function (req, res) {
     var id = req.params.contentid;
-    if (!utils.check_id (id)) {
-        res.send (utils.message (utils.meta ("invalid content id")));
-        return;
-    }
-
-    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
-    ocs_db.open(function(err, ocs_db) {
-        ocs_db.collection('content', function (err, content_coll) {
-            content_coll.find({"_id" : ObjectID (id)}).toArray(function(err, results) {
-                if (err) {
-                    console.log ("System error in get content");
-                    res.send (utils.message (utils.meta ("Server error")));
-                } else if (results.length == 0) {
-                    res.send (utils.message (utils.meta ("content not found")));
-                } else {
-                    for (var i = 0; results[0].downloadinfos [i]; i++) {
-                        if (results[0].downloadinfos [i].way == req.params.itemid) {
-                            var data = new Array ();
-                            data [0] = results[0].downloadinfos [i];
-                            content_coll.update({"_id" : ObjectID (id)}, {$inc: {"downloads" :1}}, true, true);
-                            res.send (utils.message (utils.meta ("ok"), data));
-                            return;
-                        }
-                    }
-                    res.send (utils.message (utils.meta ("content item not found")));
-                }
-            });
-        });
-    });
-};
-
-vote_content = function (req, res) {
-    var id = req.params.contentid;
-    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
-    ocs_db.open(function(err, ocs_db) {
+    ContentModel.findOne ({"id": id}, function (err, doc) {
         if (err) {
             res.send (utils.message (utils.meta ("Server error")));
-            console.log ("System error in vote comment");
-            return;
-        } else {
-            res.send (utils.message (utils.meta ("ok")));
-        }
-
-        /* add to votes table */
-        ocs_db.collection('votes', function (err, votes_coll) {
-            var personid = utils.get_username (req);
-            var date = Date();
-            votes_coll.insert (
-                {"contentid" :id,
-                "score" :req.body.score,
-                "personid" :personid,
-                "date" : date}
-                );
-        });
-    
-        /* update the 'summary' table and the 'content' table */
-        ocs_db.collection('summary', function (err, summary_coll) {
-            summary_coll.find({"vote_contentid" : id}).toArray(function(err, r) {
-                if (r.length == 1) {
-                    var score = parseInt (r[0].score);
-                    var count = parseInt (r[0].count);
-                    var total = count * score + parseInt (req.body.score);
-                    count ++;
-                    score = total / count;
-                    summary_coll.update({"vote_contentid": id},
-                        {$set : {"count":count,"score":score}}, true, true);
-                    ocs_db.collection('content', function (err, content_coll) {
-                        content_coll.update({"_id": ObjectID(id)}, {$set: {"score" : score}});
+        } else if (doc) {
+            for (var i = 0; doc.download[i]; i++) {
+                if (doc.download[i].way == req.params.itemid) {
+                    var data = new Array ();
+                    data [0] = results[0].downloadinfos [i];
+                    ContentModel.update({"_id" : id}, {$inc: {"downloads" :1}}, function (err) {
+                        if (err)
+                            res.send (utils.message (utils.meta ("Server error")));
+                        else
+                            res.send (utils.message (utils.meta ("ok"), data));
                     });
-                } else {
-                    var score = parseInt (req.body.score);
-                    summary_coll.insert(
-                        {"vote_contentid" : id,
-                        "count": 1,
-                        "score": score}
-                        );
-                    ocs_db.collection('content', function (err, content_coll) {
-                        content_coll.update({"_id": ObjectID(id)}, {$set: {"score" : score}});
-                    });
+                    return;
                 }
-            });
-        });
+            }
+            res.send (utils.message (utils.meta ("content item not found")));
+        } else {
+            res.send (utils.message (utils.meta ("content not found")));
+        }
     });
 };
 
 exports.vote = function (req, res) {
-    if (req.body.score) {
-        var score = parseInt (req.body.score);
-        if ((score < 0) || (score > 100)) {
-            res.send (utils.message (utils.meta ("vote with score between 0 and 100")));
-            return;
-        }
-    } else {
-        res.send (utils.message (utils.meta ("vote with score between 0 and 100")));
-        return;
-    }
-
     var id = req.params.contentid;
-    account.auth (req, res, function (auth_result) {
-        if (auth_result == "ok") {           /* success, only auth user can vote, guest cannot */
-            exports.exist (id, function (exist_result) {
-                if (exist_result == "ok") {
-                    var personid = utils.get_username(req);
-                    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
-                    ocs_db.open(function(err, ocs_db) {
-                        ocs_db.collection('votes', function (err, votes_coll) {
-                            votes_coll.find({"contentid": id, "personid": personid}).toArray(function(err, results) {
-                                if (results.length != 0) {
-                                    res.send (utils.message (utils.meta ("you have already voted on this content")));
-                                } else
-                                    vote_content (req, res);
-                            });
-                        });
+    exports.valid (id, function (r) {
+        if (r) {
+            vote.vote ("content", id, req, function (msg, score) {
+                if (msg == "ok") {
+                    ContentModel.update ({_id: id}, {score:score}, function (err) {
+                        if (err)
+                            res.send (utils.message (utils.meta ("Server error")));
+                        else
+                            res.send (utils.message (utils.meta ("ok")));
                     });
                 } else {
-                        res.send (utils.message (utils.meta (exist_result)));
+                    res.send (utils.message (utils.meta (msg)));
                 }
             });
         } else {
-            res.send (utils.message (utils.meta ("no permission to vote")));
+            res.send (utils.message (utils.meta ("content not found")));
         }
     });
 };

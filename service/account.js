@@ -8,7 +8,7 @@ var dbaddr = require('./config').db_addr;
  * "no auth info"
  * "fail to auth"
  */
-exports.auth = function (req, res, callback) {
+exports.auth = function (req, callback) {
     var header = req.headers.authorization;
     if (!header)
         return callback ("no auth info");
@@ -16,12 +16,12 @@ exports.auth = function (req, res, callback) {
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();
     var parts = auth.split(":");
-    var username = parts[0];
+    var userid = parts[0];
     var password = parts[1];
 
     var admindb = new db(dbname('admin'), new server(dbaddr(), 27017, {}));
     admindb.open (function (error, admindb) {
-        admindb.authenticate(username, password, function (err, val) {
+        admindb.authenticate(userid, password, function (err, val) {
             if (err)
                 return callback ("fail to auth");
             else
@@ -36,7 +36,7 @@ exports.getself = function (req, res) {
             var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
             ocs_db.open (function (err, ocs_db) {
                 ocs_db.collection('person', function (err, person_coll) {
-                    person_coll.find({"login" : utils.get_username(req)}).toArray(function(err, results) {
+                    person_coll.find({"login" : utils.get_userid(req)}).toArray(function(err, results) {
                         var data = new Array ();
                         data [0] = results [0];
                         res.send(utils.message (utils.meta ("ok"), data));
@@ -80,7 +80,7 @@ function add_account (req, res) {
                 if (results.length == 0) {
                     /* password should not be saved */
                     person_coll.insert (
-                        {"login" : login,
+                        {"personid" : login,
                         "firstname" : firstname,
                         "lastname": lastname,
                         "email": email}
@@ -106,7 +106,6 @@ function add_account (req, res) {
 };
 
 exports.add = function (req, res) {
-    console.log (req);
     var login = req.body.login;
     var password = req.body.password;
     var firstname = req.body.firstname;
@@ -144,7 +143,7 @@ exports.add = function (req, res) {
     var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('person', function (err, person_coll) {
-            person_coll.find({"login" : login}).toArray(function(err, results) {
+            person_coll.find({"personid" : login}).toArray(function(err, results) {
                 if (err) {
                     console.log (err);
                     res.send (utils.message (utils.meta ("Server error")));
@@ -181,12 +180,12 @@ function remove_account (req, res) {
                 var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
                 ocs_db.open(function(err, ocs_db) {
                     ocs_db.collection('person', function (err, person_coll) {
-                        person_coll.find({"login" : req.body.login}).toArray(function(err, results) {
+                        person_coll.find({"personid" : req.body.login}).toArray(function(err, results) {
                             if (results.length == 0) {
                                 console.log ("System error: remove the unexisted user?");
                                 res.send (utils.message (utils.meta ("Server error")));
                             } else {
-                                person_coll.remove({"login" : req.body.login});
+                                person_coll.remove({"personid" : req.body.login});
                                 res.send (utils.message (utils.meta ("ok")));
                             }
                         });
@@ -223,7 +222,7 @@ function get_account (req, res) {
     var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function(err, ocs_db) {
         ocs_db.collection('person', function (err, person_coll) {
-            person_coll.find({"login" : req.params.personid}).toArray(function(err, results) {
+            person_coll.find({"personid" : req.params.personid}).toArray(function(err, results) {
                 if (err) {
                     console.log ("System error in get account " + req.params.personid);
                     res.send (utils.message (utils.meta ("Server error")));
@@ -263,7 +262,7 @@ function search_account (req, res) {
     var query = {};
     if (req.query.name) {
         query.$or = new Array();
-        query.$or[0] = {"login" : {$regex: req.query.name, $options: 'i'}};
+        query.$or[0] = {"personid" : {$regex: req.query.name, $options: 'i'}};
         query.$or[1] = {"firstname" : {$regex: req.query.name, $options: 'i'}};
         query.$or[2] = {"lastname" : {$regex: req.query.name, $options: 'i'}};
     }
@@ -279,7 +278,7 @@ function search_account (req, res) {
                     res.send (utils.message (meta));
                 } else {
                     person_coll.find(query).skip(page*pagesize).limit(pagesize).toArray(function(err, results) {
-                        var meta = {"status" : "ok", "statuscode" : 100, "totalitems": results.length, "itemsperpage": pagesize};
+                        var meta = {"status" : "ok", "statuscode" : 100, "totalitems": count, "itemsperpage": pagesize};
                         var msg = {"meta" : meta};
                         var data = new Array();
                         if (results.length == 0) {
@@ -303,6 +302,25 @@ exports.search = function (req, res) {
     exports.auth (req, res, function (auth_result) {
         if (auth_result == "ok") {
             search_account (req, res);
+        } else {
+            res.send (utils.message (utils.meta ("no permission to get person info")));
+        }
+    });
+};
+
+function get_account_balance (req, res) {
+    var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
+    ocs_db.open(function(err, ocs_db) {
+        var userid = utils.get_userid (req);
+        ocs_db.collection('person', function (err, person_coll) {
+        });
+    });
+};
+
+exports.get_balance = function (req, res) {
+    exports.auth (req, res, function (auth_result) {
+        if (auth_result == "ok") {
+            get_account_balance (req, res);
         } else {
             res.send (utils.message (utils.meta ("no permission to get person info")));
         }
