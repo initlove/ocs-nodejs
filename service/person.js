@@ -1,4 +1,5 @@
 var account = require('./account');
+var utils = require('./utils');
 var express = require('express');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -11,17 +12,12 @@ var attributeSchema = new Schema ({
     ,lastmodifed: {type: Date, default: Date.now}
 });
 
-var balanceSchema = new Schema ({
-    currency: String
-    ,balance: {type: Number, default:0}
-});
-
 var personSchema = new Schema ({
     _id: {type: ObjectId, select: false}
     ,personid: {type: String, required: true, unique: true}
-    ,firstname: {String, required: true}
-    ,lastname: {String, required: true}
-    ,email: {String, required: true}
+    ,firstname: {type: String, required: true}
+    ,lastname: {type: String, required: true}
+    ,email: {type: String, required: true}
     ,gender: String
     ,birthday: Date
     ,company: String
@@ -30,11 +26,12 @@ var personSchema = new Schema ({
     ,city: String
     ,longitude: Number
     ,latitude: Number
-    ,blance: {type: balanceSchema}
+    ,currency: String
+    ,balance: Number
 });
 
 mongoose.connect('mongodb://localhost/test');
-var PersonModel = mongoose.model('person', personSchema);
+var personModel = mongoose.model('person', personSchema);
 
 exports.check = function (req, res) {
     if (!req.body.login || !req.body.password) {
@@ -44,17 +41,17 @@ exports.check = function (req, res) {
 
     account.auth (req.body.login, req.body.password, function (r, msg) {
         if (r)
-            res.send (utils.message (utils.meta ("ok")));
+            res.send(utils.message(utils.meta("ok")));
         else
-            res.send (utils.message (utils.meta ("login not valid")));
+            res.send(utils.message(utils.meta(msg)));
     });
 };
 
 exports.getself = function (req, res) {
-    account.auth (req, res, function (auth_result) {
-        if (auth_result == "ok") {
+    account.auth (req, res, function (r, msg) {
+        if (r) {
             var personid = utils.get_username (req);
-            PersonModel.findOne({'personid': personid}, function (err, doc) {
+            personModel.findOne({'personid': personid}, function (err, doc) {
                 if (err) {
                     res.send(utils.message(utils.meta("Server error")));
                     console.log (err);
@@ -66,7 +63,7 @@ exports.getself = function (req, res) {
                 }
             });
         } else {
-            res.send (utils.message (utils.meta ("no permission to get person info")));
+            res.send (utils.message (utils.meta (msg)));
         }
     });
 };
@@ -106,14 +103,14 @@ exports.add = function (req, res) {
         return;
     }
 
-    PersonModel.findOne({"personid":login}, function (err, doc) {
+    personModel.findOne({"personid":login}, function (err, doc) {
         if (err) {
             res.send (utils.message (utils.meta ("Server error")));
             console.log (err);
         } else if (doc) {
             res.send (utils.message (utils.meta ("login already exists")));
         } else {
-            PersonModel.findOne({"email":email}, function (err, doc) {
+            personModel.findOne({"email":email}, function (err, doc) {
                 if (err) {
                     res.send (utils.message (utils.meta ("Server error")));
                     console.log (err);
@@ -122,19 +119,19 @@ exports.add = function (req, res) {
                 } else {
                     account.add (login, password, function (r, msg) {
                         if (r) {
-                            var person = new PersonModel();
+                            var person = new personModel();
                             person.personid = login;
                             person.firstname = firstname;
                             person.lastname = lastname;
                             person.email = email;
-                            person.save (function (err)) {
+                            person.save (function (err) {
                                 if (err) {
                                     res.send(utils.message(utils.meta("Server error")));
                                     console.log (err);
                                 } else {
                                     res.send(utils.message(utils.meta("ok")));
                                 }
-                            }
+                            });
                         } else {
                             res.send(utils.message(utils.meta(msg)));
                         }
@@ -156,7 +153,7 @@ exports.remove = function (req, res) {
 
     account.remove (login, password, function (r, msg) {
         if (r) {
-            PersonModel.remove({"personid" : login}, function (err) {
+            personModel.remove({"personid" : login}, function (err) {
                 if (err) {
                     res.send(utils.message(utils.meta("Server error")));
                     console.log (err);
@@ -175,7 +172,7 @@ exports.get = function (req, res) {
     var password = utils.get_password (req);
     account.auth (login, password, function (r, msg) {
         if (r) {
-            PersonModel.findOne({"personid": req.params.personid}, function (err, doc) {
+            personModel.findOne({"personid": req.params.personid}, function (err, doc) {
                 if (err) {
                     res.send(utils.message(utils.meta("Server error")));
                     console.log (err);
@@ -210,24 +207,27 @@ function search_account (req, res) {
         query.$or[2] = {"lastname" : new RegExp (req.query.name, 'i')};
     }
 
-    PersonModel.count(query, function (err, count) {
+    personModel.count(query, function (err, count) {
         if (err) {
             res.send (utils.message(utils.meta("Server error")));
             console.log (err);
         } else {
-            var meta = utils.meta("ok");
-            meta.totalitems = count;
-            meta.itemsperpage = pagesize;
             if (count > page*pagesize) {
-                PersonModel.find(query).skip(page*pagesize).limit(pagesize).exec (function (err, docs) {
+                personModel.find(query).skip(page*pagesize).limit(pagesize).exec (function (err, docs) {
                     if (err) {
                         res.send (utils.message(utils.meta("Server error")));
                         console.log (err);
                     } else {
+                        var meta = utils.meta("ok");
+                        meta.totalitems = count;
+                        meta.itemsperpage = pagesize;
                         res.send (utils.message(meta, docs));
                     }
                 });
             } else {
+                var meta = utils.meta("ok");
+                meta.totalitems = count;
+                meta.itemsperpage = pagesize;
                 res.send (utils.message(meta));
             }
         }
@@ -241,7 +241,7 @@ exports.search = function (req, res) {
         if (r) {
             search_account (req, res);
         } else {
-            res.send (utils.message (utils.meta ("no permission to get person info")));
+            res.send (utils.message (utils.meta (msg)));
         }
     });
 };
@@ -251,8 +251,11 @@ exports.get_balance = function (req, res) {
     var password = utils.get_password (req);
     account.auth (login, password, function (r, msg) {
         if (r) {
-            PersonModel.findOne({"personid":login}, function (err, doc) {
-                res.send (utils.message (utils.meta (msg), doc.balance));
+            personModel.findOne({"personid":login}, function (err, doc) {
+                var data = new Array();
+                data[0].currency = doc.currency;
+                data[0].balance = doc.balance;
+                res.send (utils.message (utils.meta (msg), data));
             });
         } else {
             res.send (utils.message (utils.meta (msg)));

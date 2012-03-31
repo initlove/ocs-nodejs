@@ -1,4 +1,5 @@
 var account = require('./account');
+var utils = require('./utils');
 var express = require('express');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -36,21 +37,23 @@ function check_score(score) {
 
 exports.vote = function(collection_name_name, item_id, req, callback) {
     if(!check_score(req.body.score)) {
-        callback("vote with score between 0 and 100");
+        callback(-1, "vote with score between 0 and 100");
         return;
     }
 
-    account.auth(req, function(auth_r) {
-        if(auth_r == "ok") {
-            var userid = utils.get_userid(req);
+    var login = utils.get_username (req);
+    var password = utils.get_password (req);
+    account.auth(login, password, function(r, msg) {
+        if(r) {
             voteModel.findOne({"collection_name": collection_name,"item_id": item_id},
                 function(err, doc) {
                     if(err) {
-                        callback("Server error");
+                        console.log (err);
+                        callback(-1, "Server error");
                     } else if(doc) {
                         for(var i = 0; doc.details[i]; i++)
                             if(doc.details[i].personid == userid) {
-                                callback("You have already voted on this item");
+                                callback(-1, "You have already voted on this item");
                                 return;
                             }
                         var vote_detail = new voteDetailModel();
@@ -59,14 +62,14 @@ exports.vote = function(collection_name_name, item_id, req, callback) {
                         doc.details.push(vote_detail);
                         var newCount = doc.count + 1;
                         var newScore =(vote_details.score + doc.score)/newCount;
-                        NewsModel.update({_id:doc._id}, 
+                        voteModel.update({_id:doc._id}, 
                             {count: newCount, score: newScore, details:doc.details}, 
                             function(err) {
                                 if (err) {
-                                    callback ("Server error");
+                                    callback (-1, "Server error");
                                     console.log ("Error in update vote");
                                 } else
-                                    callback ("ok", vote.score);
+                                    callback (vote.score);
                             });
                     } else {
                         var vote = new voteModel();
@@ -80,14 +83,14 @@ exports.vote = function(collection_name_name, item_id, req, callback) {
                         vote.details.push(vote_detail);
                         vote.save(function(err) {
                             if(err) {
-                                callback("Server error");
+                                callback(-1, "Server error");
                             } else
-                                callback ("ok", vote.score);
+                                callback (vote.score);
                         });
                     }
                 });
         } else {
-            callback(auth_r);
+            callback(-1, msg);
         }
     });
 };

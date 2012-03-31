@@ -114,7 +114,7 @@ exports.meta = function (message_type) {
             meta.statuscode = 104;
             break;
         default :
-            console.log ("Some meta result was not include: " + mesage_type + "\n");
+            console.log ("Some meta result was not include: " + message_type + "\n");
             meta.statuscode = 111;
             break;
     }
@@ -133,18 +133,20 @@ exports.message = function (meta, data) {
     return msg;
 }
 
-exports.check_id = function (id) {
-    if (id == null || (id.length != 12 && id.length != 24)) {
-        return false;
-    } else
-        return true;
-}
-
-exports.get_userid = function (req) {
+exports.get_username = function (req) {
     var header = req.headers.authorization || '';
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();
     var parts = auth.split(":");
      
     return parts[0];  
+}
+
+exports.get_password = function (req) {
+    var header = req.headers.authorization || '';
+    var token = header.split(/\s+/).pop() || '';
+    var auth = new Buffer(token, 'base64').toString();
+    var parts = auth.split(":");
+     
+    return parts[1];  
 }

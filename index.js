@@ -6,7 +6,7 @@ var config = require('./service/config');
 var fan = require('./service/fan');
 var content = require('./service/content');
 var comments = require('./service/comments');
-var account = require('./service/account');
+var person = require('./service/person');
 var images = require('./service/images');
 var message = require('./service/message');
 var express = require('express');
@@ -32,22 +32,22 @@ app.configure('production', function(){
 
 app.get('/config', config.get);
 
-app.post('/person/check', account.check);
-app.post('/person/add', account.add);
-app.post('/person/remove', account.remove);
-app.get('/person/data', account.search);    // 
-app.get('/person/data/:personid', account.get);
-app.get('/person/self', account.getself);
-app.post('/person/self', account.edit);
-app.get('/person/balance', account.get_balance);
+app.post('/person/check', person.check);
+app.post('/person/add', person.add);
+app.post('/person/remove', person.remove);
+app.get('/person/data', person.search);    // 
+app.get('/person/data/:personid', person.get);
+app.get('/person/self', person.getself);
+app.post('/person/self', person.edit);
+app.get('/person/balance', person.get_balance);
 
 app.get('/message', message.list);
 app.post('/message', message.send);
 
-app.get('/fan/data/:contentid', fan.get);
-app.get('/fan/status/:contentid', fan.isfan);
-app.post('/fan/add/:contentid', fan.add);
-app.post('/fan/remove/:contentid', fan.remove);
+app.get('/fan/data/:contentid', content.getfan);
+app.get('/fan/status/:contentid', content.isfan);
+app.post('/fan/add/:contentid', content.addfan);
+app.post('/fan/remove/:contentid', content.removefan);
 
 app.post('/content/add', content.add);
 app.get('/content/data', content.list);

@@ -3,13 +3,12 @@ var server = require('mongodb').Server;
 var ObjectID = require('mongodb').ObjectID;
 var GridStore = require('mongodb').GridStore;
 var fs = require('fs');
-var utils = require('./utils');
 var dbname = require('./config').db_name;
 var dbaddr = require('./config').db_addr;
 
 exports.get = function (req, res) {
     var imageid = req.params.imageid;
-    if (!utils.check_id (imageid)) {
+    if (imageid == null || (image.length != 12 && image.length != 24)) {
         res.send (utils.message (utils.meta("invalid image id")));
         return;
     }
@@ -41,12 +40,34 @@ exports.save_image = function (filename, path, callback) {
     /*TODO: in every 'err', I should callback -1 */
     var ocs_db = new db(dbname(), new server(dbaddr(), 27017, {}));
     ocs_db.open(function (err, connection) {
-    var gridStore = new GridStore(ocs_db, filename, 'w+');
+        if (err) {
+            callback (null, "Server error");
+            return;
+        }
+         
+        var gridStore = new GridStore(ocs_db, filename, 'w+');
         gridStore.open(function (err, gridStore) {
+            if (err) {
+                callback (null, "Server error");
+                return;
+            }
             fs.readFile(path, function (err, imageData) {
+                if (err) {
+                    callback (null, "Server error");
+                    return;
+                }
                 gridStore.write(imageData, function (err, gridStore) {
+                    if (err) {
+                        callback (null, "Server error");
+                        return;
+                    }
                     gridStore.close(function (err, result) {
-                        callback (result._id.toString());
+                        if (err) {
+                            callback (null, "Server error");
+                            return;
+                        } else {
+                            callback (result._id.toString());
+                        }
                     });
                 });
             });

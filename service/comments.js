@@ -44,21 +44,21 @@ commentsSchema.path('guestemail').validate(function (v){
 });
 
 mongoose.connect('mongodb://localhost/test');
-var CommentModel = mongoose.model('comments', commentsSchema);
+var commentModel = mongoose.model('comments', commentsSchema);
 
 exports.valid = function (id, callback) {
-    CommentModel.findById (id, function (err, doc) {
+    commentModel.findById (id, function (err, doc) {
         if (err)
-            callback (false);
+            callback (false, "Server error");
         else if (doc)
             callback (true);
         else
-            callback (false);
+            callback (false, "item id not found");
     });
 };
 
 function real_add_comment (req, res) {
-    var comment = new CommentModel();
+    var comment = new commentModel();
 
     comment.type = req.body.type;
     comment.contentid = req.body.content;
@@ -73,11 +73,11 @@ function real_add_comment (req, res) {
     comment.save(function(err){
         if (!err) {
             /*TODO: any other way to change _id to id ? */
-            CommentModel.update({_id: comment._id}, {id: comment._id.toString ()}, function (err) {
+            commentModel.update({_id: comment._id}, {id: comment._id.toString ()}, function (err) {
             }); 
 
             if (req.body.parent != 0) {
-                CommentModel.update ({_id: req.body.parent}, {$inc: {"childcount" :1}}, function (err) {
+                commentModel.update ({_id: req.body.parent}, {$inc: {"childcount" :1}}, function (err) {
                     if (err)
                         console.log ("Unable to update the parent child count");
                 });
@@ -111,14 +111,14 @@ function add_comment (req, res) {
     var contentid = req.body.content;
     var parent = req.body.parent;
 
-    content.valid (contentid, function (contentid_r) {
-        if (contentid_r) {
+    content.valid (contentid, function (r, msg) {
+        if (r) {
             if (parent && parent != '0') {
-                exports.valid (parent, function (commentsid_r) {
-                    if (commentsid_r) {
+                exports.valid (parent, function (r, msg) {
+                    if (r) {
                         real_add_comment (req, res);
                     } else {
-                        res.send (utils.message (utils.meta ("invalid parent id")));
+                        res.send (utils.message (utils.meta (msg)));
                     }
                 });
             } else {
@@ -126,32 +126,20 @@ function add_comment (req, res) {
             }
 
         } else {
-            res.send (utils.message (utils.meta ("invalid content id")));
+            res.send (utils.message (utils.meta (msg)));
         }
     });
 };
 
 exports.add = function (req, res) {
-    account.auth (req, res, function (auth_r) {
-        switch (auth_r) {
-            case "ok":
+    account.auth (req, res, function (r, msg) {
+        if (r) {
+            add_comment (req, res);
+        } else {
+            if (req.body.guestname && req.body.guestemail) {
                 add_comment (req, res);
-                break;
-            case "no auth info":
-                if ((req.body.guestname == null) || (req.body.guestemail == null)) {
-                    res.send (utils.message (utils.meta ("no permission to add a comment")));
-                } else {
-                    add_comment (req, res);
-                }
-                break;
-            case "fail to auth":
-                res.send (utils.message (utils.meta ("no permission to add a comment")));
-                break;
-            default:
-                /*TODO: the apis limitation?  */
-                res.send (utils.message (utils.meta (auth_r)));
-                console.log (auth_r);
-                break;
+            } else
+                res.send (utils.message (utils.meta (msg)));
         }
     });
 };
@@ -186,22 +174,22 @@ exports.get = function (req, res) {
         res.send (utils.message (utils.meta ("wrong type")));
         return;
     }
-    content.valid (req.query.content, function (r) {
+    content.valid (req.query.content, function (r, msg) {
         if (r) {
             get_comments (req, res);
         } else {
-            res.send (utils.message (utils.meta ("invalid content id")));
+            res.send (utils.message (utils.meta (msg)));
         }
     });
 };
 
 exports.vote = function (req, res) {
     var id = req.params.commentid;
-    exports.valid (id, function (r) {
+    exports.valid (id, function (r, msg) {
         if (r) {
-            vote.vote ("comments", id, req, function (msg, score) {
-                if (msg == "ok") {
-                    CommentModel.update ({_id: id}, {score:score}, function (err) {
+            vote.vote ("comments", id, req, function (score, msg) {
+                if (score > -1) {
+                    commentModel.update ({_id: id}, {score:score}, function (err) {
                         if (err)
                             res.send (utils.message (utils.meta ("Server error")));
                         else
@@ -212,7 +200,7 @@ exports.vote = function (req, res) {
                 }
             });
         } else {
-            res.send (utils.message (utils.meta ("invalid content id")));
+            res.send (utils.message (utils.meta (msg)));
         }
     });
 };

@@ -1,4 +1,6 @@
 var account = require('./account');
+var content = require('./content');
+var utils   = require('./utils');
 var express = require('express');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -10,14 +12,15 @@ var fanDetailSchema = new Schema({
 });
 
 var fanSchema = new Schema({
-    content: String
+    collection_name: String
+    ,item_id: String
     ,fan: {type:[fanDetailSchema], default:[]}
 });
 
 mongoose.connect('mongodb://localhost/test');
-var FanModel = mongoose.model('fan', fanSchema);
+var fanModel = mongoose.model('fan', fanSchema);
 
-exports.get = function(req, res) {
+exports.get = function(collection_name, req, callback) {
     var login = utils.get_username (req);
     var password = utils.get_password (req);
     account.auth (login, password, function (r, msg) {
@@ -30,51 +33,129 @@ exports.get = function(req, res) {
             if (req.query.pagesize)
                 pagesize = parseInt (req.query.pagesize);
 
-            FanModel.count({"content": req.params.contentid}, function (err, count) {
+            fanModel.count({"collection_name" : collection_name, "item_id": req.params.contentid}, function (err, count) {
                 if (err) {
-                    res.send(utils.message(utils.meta ("Server error")));
                     console.log (err);
+                    callback (null, "Server error");
                 } else {
                     var meta = utils.meta("ok");
                     meta.totalitems = count;
                     meta.itemsperpage = pagesize;
                     if (count > page*pagesize) {
-                        FanModel.skip(page*pagesize).limit(pagesize).exec (function (err, docs) {
+                        fanModel.skip(page*pagesize).limit(pagesize).exec (function (err, docs) {
                             if (err) {
-                                res.send(utils.message(utils.meta ("Server error")));
                                 console.log (err);
+                                callback (null, "Server error");
                             } else {
-                                res.send (utils.message(meta), docs);
+                                callback (utils.message (meta, docs));
                             }
                         });
                     } else {
-                        res.send (utils.message(meta));
+                        callback (utils.message (meta));
                     }
                 }
             });
         } else {
-            res.send (utils.message(utils.meta("no permission")));
+            callback (null, "no permission");
         }
     });
 };
 
-exports.isfan = function (req, res) {
+exports.isfan = function (collection_name, id, req, callback) {
     var login = utils.get_username (req);
     var password = utils.get_password (req);
     account.auth (login, password, function (r, msg) {
         if (r) {   /* only authenticated user can use get */
-            FanModel.findOne({"content":req.parmas.contentid}, function (err, doc) {
+            fanModel.findOne({"collection_name" : collection_name, "item_id" : id, "fan.personid":login}, function (err, doc) {
                 if (err) {
-                    res.send(utils.message(utils.meta ("Server error")));
                     console.log (err);
-                } else if (doc) {
+                    callback (false, "Server error");
                 } else {
+                    if (doc) {
+                        callback (true);
+                    } else {
+                        callback (false);
+                    }
                 }
             });
         } else {
-            res.send (utils.message(utils.meta("no permission")));
+            callback (false, "no permission");
         }
     });
 };
 
+exports.add = function (collection_name, id, req, callback) {
+    var login = utils.get_username (req);
+    var password = utils.get_password (req);
+    account.auth (login, password, function (r, msg) {
+        if (r) {   /* only authenticated user can use get */
+            fanModel.findOne({"collection_name" : collection_name, "item_id": id}, function (err, doc) {
+                if (err) {
+                    console.log (err);
+                    callback (false, "Server error");
+                } else {
+                    var fan = {};
+                    if (doc) {
+                        fan = doc;
+                        for (var i = 0; doc.fan[i]; i++) {
+                            if (doc.fan[i].personid == login) {
+                                callback (false, "You have already been the fan.");
+                                return;
+                            }
+                        }
+                    } else {
+                        fan = new fanModel();
+                        fan.content = id;
+                    }
+                    
+                    var fan_detail = new fanDetailModel();
+                    fan_detail.personid = login;
+                    fan.fan.push(fan_detail);
+                    fan.save(function(err) {
+                        if (err) {
+                            console.log (err);
+                            callback (false, "Server error");
+                        } else {
+                            callback (true);
+                        }
+                    });
+                }
+            });
+        } else {
+            callback (false, "no permission");
+        }
+    });
+};
 
+exports.remove = function (collection_name, id, req, callback) {
+    var login = utils.get_username (req);
+    var password = utils.get_password (req);
+    account.auth (login, password, function (r, msg) {
+        if (r) {   /* only authenticated user can use get */
+            fanModel.findOne({"collection_name": collection_name, "item_id": id}, function (err, doc) {
+                if (err) {
+                    console.log (err);
+                    callback (false, "Server error");
+                } else {
+                    for (var i=0; doc.fan[i]; i++) {
+                        if (doc.fan[i].personid == login) {
+                            doc.fan[i].remove();
+                            doc.save(function (err) {
+                                if (err) {
+                                    console.log (err);
+                                    callback (false, "Server error");
+                                } else {
+                                    callback (true);
+                                }
+                            });
+                            return;
+                        }
+                    }
+                    callback (false, "You are not the fan");
+                }
+            });
+        } else {
+            callback (false, "no permission");
+        }
+    });
+};
