@@ -1,0 +1,1 @@
+curl --data "longitude=1243&city=Beijing" http://test001:test001password@localhost:3000/person/self

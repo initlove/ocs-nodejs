@@ -46,7 +46,10 @@ exports.get = function(collection_name, req, callback) {
                                 console.log(err);
                                 callback(null, "Server error");
                             } else {
-                                var result = {"ocs": {"meta": meta, "data": docs}};
+                                var data = new Array();
+                                for (var i; docs[i]; i++)
+                                    data[i] = {"person": docs[i]};
+                                var result = {"ocs": {"meta": meta, "data": data}};
                                 callback(result);
                             }
                         });

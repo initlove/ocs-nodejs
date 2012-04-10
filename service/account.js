@@ -2,20 +2,10 @@ var db = require('mongodb').Db;
 var server = require('mongodb').Server;
 var utils = require('./utils');
 
-exports.auth = function(req, callback) {
-    var header = req.headers.authorization;
-    if(!header)
-        return callback(false, "no auth info");
-
-    var token = header.split(/\s+/).pop() || '';
-    var auth = new Buffer(token, 'base64').toString();
-    var parts = auth.split(":");
-    var userid = parts[0];
-    var password = parts[1];
-
+exports.auth = function(login, password, callback) {
     var admindb = new db('admin', new server("127.0.0.1", 27017, {}));
     admindb.open(function(error, admindb) {
-        admindb.authenticate(userid, password, function(err, val) {
+        admindb.authenticate(login, password, function(err, val) {
             if(err)
                 return callback(false, "fail to auth");
             else

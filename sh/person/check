@@ -1,0 +1,1 @@
+curl --data "login=test001&password=test001password" http://localhost:3000/person/check

@@ -1,6 +1,6 @@
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
-var j2x = require('jsontoxml');
+var jsontoxml = require('jsontoxml');
 
 /*TODO: should we have statuscode ? */
 exports.meta = function(message_type) {
@@ -149,7 +149,9 @@ exports.info = function(req, res, result) {
     if(req.query.format &&(req.query.format == 'json')) {
         res.send(result);
     } else {
-        res.send(j2x.obj_to_xml(result));
+        var str = JSON.stringify (result);
+        var r = JSON.parse (str);
+        res.send(jsontoxml.obj_to_xml(r, true));
     }
 }
 
@@ -158,6 +160,6 @@ exports.message = function(req, res, msg) {
     if(req.query.format && (req.query.format == 'json')) {
         res.send(result);
     } else {
-        res.send(j2x.obj_to_xml(result));
+        res.send(jsontoxml.obj_to_xml(result, true));
     }
 }

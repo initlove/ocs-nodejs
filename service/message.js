@@ -7,10 +7,11 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var messageSchema = new Schema({
-    from: {type: String, required: true}
+    _id: {type:ObjectId, select:false}
+    ,from: {type: String, required: true}
     ,to: {type: String, required: true}
     ,subject: {type: String, required: true}
-    ,message: {type: String, required: true}
+    ,body: {type: String, required: true}
     ,date: {type: Date, default: Date.now}
     ,status: {type: String, default: "unread"}
 });
@@ -43,7 +44,7 @@ exports.send = function(req, res){
                     message.from = login;
                     message.to = to;
                     message.subject = req.body.subject;
-                    message.message = req.body.message;
+                    message.body = req.body.message;
                     message.save(function(err) {
                         if(err)
                             utils.message(req, res, "Server error");
@@ -95,7 +96,11 @@ exports.list = function(req, res){
                     utils.message(req, res, "Server error");
                 } else {
                     var meta = {"status":"ok", "statuscode": 100};
-                    var result = {"ocs": {"meta": meta, "data": docs}};
+                    var data = new Array();
+                    for (var i = 0; docs[i]; i++) {
+                        data[i] = {"message": docs[i]};
+                    }
+                    var result = {"ocs": {"meta": meta, "data": data}};
                     utils.info(req, res, result);
                 }
             });

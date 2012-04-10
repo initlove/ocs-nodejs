@@ -4,7 +4,6 @@ exports.get = function (req, res) {
     var meta = {};
     meta.status = "ok";
     meta.statuscode = 100;
-    meta.message = null;
 
     var data = {};
     data.version = '2.0';
@@ -21,6 +20,9 @@ exports.get = function (req, res) {
     services[i++] = '/person/data/:personid';
     services[i++] = '/person/self';
     services[i++] = '/person/data';
+
+    services[i++] = '/message (list)';
+    services[i++] = '/message (send)'
 
     services[i++] = '/fan/data/:contentid';
     services[i++] = '/fan/status/:contentid';

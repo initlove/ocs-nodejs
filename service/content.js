@@ -280,6 +280,10 @@ exports.vote = function(req, res) {
     });
 };
 
+/*TODO:add the service to get the apps of a friend
+ */
+
+
 exports.isfan = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
@@ -287,18 +291,14 @@ exports.isfan = function(req, res) {
             fan.isfan("content", id, req, function(r, msg) {
                 if(r) {
                     var meta = {"status": "ok", "statuscode": 100};
-                    var data = new Array();
-                    data [0].status = "fan";
-                    var result = {"ocs": {"meta": meta, "data": data}};
+                    var result = {"ocs": {"meta": meta, "data": {"status": "fan"}}};
                     utils.info(req, res, result);
                 } else {
                     if(message) {
                         utils.message(req, res, msg);
                     } else {
                         var meta = {"status": "ok", "statuscode": 100};
-                        var data = new Array();
-                        data [0].status = "notfan";
-                        var result = {"ocs": {"meta": meta, "data": data}};
+                        var result = {"ocs": {"meta": meta, "data": {"status": "notfan"}}};
                         utils.info(req, res, result);
                     }
                 }
@@ -313,9 +313,9 @@ exports.getfan = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            fan.get("content", id, req, function(result, result) {
+            fan.get("content", id, req, function(result, msg) {
                 if(result) {
-                    utils.info(req, res, info);
+                    utils.info(req, res, result);
                 } else {
                     utils.message(req, res, msg);
                 }
