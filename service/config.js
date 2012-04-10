@@ -1,8 +1,12 @@
 var utils = require ('./utils');
 
 exports.get = function (req, res) {
-    var data = {};
+    var meta = {};
+    meta.status = "ok";
+    meta.statuscode = 100;
+    meta.message = null;
 
+    var data = {};
     data.version = '2.0';
     data.website = 'localhost:3000';
     data.host = 'localhost:3000';
@@ -38,5 +42,6 @@ exports.get = function (req, res) {
 
     data.services = services;
 
-    res.send (utils.message (utils.meta ("ok"), data));
+    var result = {"ocs": {"meta": meta, "data": data}};
+    utils.info (req, res, result);
 };

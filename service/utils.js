@@ -1,10 +1,11 @@
 var db = require('mongodb').Db;
 var server = require('mongodb').Server;
+var j2x = require('jsontoxml');
 
 /*TODO: should we have statuscode ? */
-exports.meta = function (message_type) {
+exports.meta = function(message_type) {
     var meta = {};
-    switch (message_type) {
+    switch(message_type) {
         case "ok":
             meta.status = "ok";
             meta.statuscode = 100;
@@ -114,26 +115,18 @@ exports.meta = function (message_type) {
             meta.statuscode = 104;
             break;
         default :
-            console.log ("Some meta result was not include: " + message_type + "\n");
+            console.log("Some meta result was not include: " + message_type + "\n");
             meta.statuscode = 111;
             break;
     }
-    if (message_type != "ok") {
+    if(message_type != "ok") {
         meta.status = "fail";
         meta.message = message_type;
     }
     return meta;
 }
 
-exports.message = function (meta, data) {
-    var msg = {"meta" : meta};
-    if (data)
-        msg.data = data;
-
-    return msg;
-}
-
-exports.get_username = function (req) {
+exports.get_username = function(req) {
     var header = req.headers.authorization || '';
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();
@@ -142,11 +135,29 @@ exports.get_username = function (req) {
     return parts[0];  
 }
 
-exports.get_password = function (req) {
+exports.get_password = function(req) {
     var header = req.headers.authorization || '';
     var token = header.split(/\s+/).pop() || '';
     var auth = new Buffer(token, 'base64').toString();
     var parts = auth.split(":");
      
     return parts[1];  
+}
+
+exports.info = function(req, res, result) {
+    /*TODO: default to json one day */
+    if(req.query.format &&(req.query.format == 'json')) {
+        res.send(result);
+    } else {
+        res.send(j2x.obj_to_xml(result));
+    }
+}
+
+exports.message = function(req, res, msg) {
+    var result = {"ocs": {"meta": exports.meta(msg)}};
+    if(req.query.format && (req.query.format == 'json')) {
+        res.send(result);
+    } else {
+        res.send(j2x.obj_to_xml(result));
+    }
 }
