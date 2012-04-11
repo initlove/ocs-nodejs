@@ -1,5 +1,6 @@
 var utils = require('./utils');
 var vote = require('./vote');
+var fan = require('./fan');
 var express = require('express');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -7,21 +8,21 @@ var ObjectId = Schema.ObjectId;
 
 var downloadDetailSchema = new Schema({
     _id: {type: ObjectId, select: false}
-    ,way: Number
-    ,type: String
-    ,price: Number
-    ,link: String
-    ,name: String
-    ,size: Number
-    ,fingerprint: String
-    ,signature: String
-    ,pkg: String
-    ,repo: String
+    ,downloadway: Number
+    ,downloadtype: String
+    ,downloadprice: Number
+    ,downloadlink: String
+    ,downloadname: String
+    ,downloadsize: Number
+    ,downloadfingerprint: String
+    ,downloadsignature: String
+    ,downloadpkg: String
+    ,downloadrepo: String
 });
 
 var homepageDetailSchema = new Schema({
-    url: String
-    ,type: String
+    homepageurl: String
+    ,homepagetype: String
 });
 
 var categorySchema = new Schema({
@@ -185,7 +186,11 @@ exports.list = function(req, res) {
                     } else {
                         var meta = {"status": "ok", "statuscode": 100,
                                     "totalitems": count, "itemsperpage": pagesize};
-                        var result = {"ocs": {"meta": meta, "data": docs}};
+                        var data = new Array();
+                        for (var i = 0; docs[i]; i++) {
+                            data[i] = {"content": docs[i]};
+                        }
+                        var result = {"ocs": {"meta": meta, "data": data}};
                         utils.info(req, res, result);
                     }
                 });
@@ -206,6 +211,8 @@ exports.get = function(req, res) {
             utils.message(req, res, "Server error");
         } else if(doc) {
             var meta = {"status": "ok", "statuscode": 100};
+            var data = new Array();
+            data[0] = {"content": doc};
             var result = {"ocs": {"meta": meta, "data": data}};
             utils.info(req, res, result);
         } else {
@@ -220,7 +227,10 @@ exports.categories = function(req, res) {
             utils.message(req, res, "Server error");
         } else {
             var meta = {"status": "ok", "statuscode": 100};
-            var result = {"ocs": {"meta": meta, "data": docs}};
+            var data = new Array();
+            for (var i = 0; docs[i]; i++)
+                data[i] = {"category": docs[i]};
+            var result = {"ocs": {"meta": meta, "data": data}};
             utils.info(req, res, result);
         }
     });
@@ -236,14 +246,14 @@ exports.download = function(req, res) {
             utils.message(req, res, "Server error");
         } else if(doc) {
             for(var i = 0; doc.download[i]; i++) {
-                if(doc.download[i].way == req.params.itemid) {
-                    var data = new Array();
-                    data [0] = results[0].downloadinfos [i];
+                if(doc.download[i].downloadway == req.params.itemid) {
                     contentModel.update({"_id" : id}, {$inc: {"downloads" :1}}, function(err) {
                         if(err) {
                             utils.message(req, res, "Server error");
                         } else {
                             var meta = {"status": "ok", "statuscode": 100};
+                            var data = new Array();
+                            data[0] = {"content": doc.download[i]};
                             var result = {"ocs": {"meta": meta, "data": data}};
                             utils.info(req, res, result);
                         }
@@ -264,7 +274,7 @@ exports.vote = function(req, res) {
         if(r) {
             vote.vote("content", id, req, function(score, msg) {
                 if(score > -1) {
-                    contentModel.update({_id: id}, {score:score}, function(err) {
+                    contentModel.update({id: id}, {score:score}, function(err) {
                         if(err)
                             utils.message(req, res, "Server error");
                         else
@@ -289,18 +299,12 @@ exports.isfan = function(req, res) {
     exports.valid(id, function(r, msg) {
         if(r) {
             fan.isfan("content", id, req, function(r, msg) {
-                if(r) {
-                    var meta = {"status": "ok", "statuscode": 100};
-                    var result = {"ocs": {"meta": meta, "data": {"status": "fan"}}};
-                    utils.info(req, res, result);
+                if(!r && msg) {
+                    utils.message(req, res, msg);
                 } else {
-                    if(message) {
-                        utils.message(req, res, msg);
-                    } else {
-                        var meta = {"status": "ok", "statuscode": 100};
-                        var result = {"ocs": {"meta": meta, "data": {"status": "notfan"}}};
-                        utils.info(req, res, result);
-                    }
+                    var meta = {"status": "ok", "statuscode": 100};
+                    var result = {"ocs": {"meta": meta, "data": {"status": r ? "fan":"notfan"}}};
+                    utils.info(req, res, result);
                 }
             });
         } else {
@@ -366,6 +370,16 @@ exports.removefan = function(req, res) {
             });
         } else {
             utils.message(req, res, msg);
+        }
+    });
+};
+
+exports.addcomment = function(id, callback) {
+    contentModel.update({id: id}, {$inc: {"comments":1}}, function(err) {
+        if (err) {
+            callback(false, "Server error");
+        } else {
+            callback(true);
         }
     });
 };

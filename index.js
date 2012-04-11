@@ -56,7 +56,7 @@ app.get('/content/data/:contentid', content.get);
 app.get('/content/download/:contentid/:itemid', content.download);
 app.post('/content/vote/:contentid', content.vote);
 
-app.get('/comments/get', comments.get);
+app.get('/comments/data/:type/:contentid/:contentid2', comments.get);
 app.post('/comments/add', comments.add);
 app.post('/comments/vote/:commentid', comments.vote);
 

@@ -24,44 +24,50 @@ var voteModel = mongoose.model('vote', voteSchema);
 var voteDetailModel = mongoose.model('vote_detail', voteDetailSchema);
 
 
-function check_score(score) {
-    if(!score)
-        return false;
+function parse_score(score) {
+    if (!score)
+        return -1;
+
+    if (score == 'good')
+        return 100;
+    if (score == 'bad')
+        return  0;
 
     var _score = parseInt(score);
-    if(_score < 0 || _score > 100)
-        return false;
+    if (_score < 0 || _score > 100)
+        return -1;
 
-    return true;
+    return _score;
 };
 
-exports.vote = function(collection_name_name, item_id, req, callback) {
-    if(!check_score(req.body.score)) {
-        callback(-1, "vote with score between 0 and 100");
+exports.vote = function(collection_name, item_id, req, callback) {
+    var score = parse_score(req.body.vote);
+    if (score < 0) {
+        callback(-1, "vote with score between 0 and 100, or 'good' and 'bad' ");
         return;
     }
 
     var login = utils.get_username (req);
     var password = utils.get_password (req);
     account.auth(login, password, function(r, msg) {
-        if(r) {
+        if (r) {
             voteModel.findOne({"collection_name": collection_name,"item_id": item_id},
                 function(err, doc) {
-                    if(err) {
+                    if (err) {
                         console.log (err);
                         callback(-1, "Server error");
-                    } else if(doc) {
+                    } else if (doc) {
                         for(var i = 0; doc.details[i]; i++)
-                            if(doc.details[i].personid == userid) {
+                            if (doc.details[i].personid == login) {
                                 callback(-1, "You have already voted on this item");
                                 return;
                             }
-                        var vote_detail = new voteDetailModel();
-                        vote_detail.personid = userid;
-                        vote_detail.score = parseInt(req.body.score);
-                        doc.details.push(vote_detail);
+                        var detail = new voteDetailModel();
+                        detail.personid = login;
+                        detail.score = score;
+                        doc.details[doc.details.length] = detail;
                         var newCount = doc.count + 1;
-                        var newScore =(vote_details.score + doc.score)/newCount;
+                        var newScore =(score + doc.score)/newCount;
                         voteModel.update({_id:doc._id}, 
                             {count: newCount, score: newScore, details:doc.details}, 
                             function(err) {
@@ -69,23 +75,23 @@ exports.vote = function(collection_name_name, item_id, req, callback) {
                                     callback (-1, "Server error");
                                     console.log ("Error in update vote");
                                 } else
-                                    callback (vote.score);
+                                    callback (newScore);
                             });
                     } else {
-                        var vote = new voteModel();
-                        vote.collection_name = collection_name;
-                        vote.item_id = item_id;
-                        vote.score = parseInt(req.body.score);
-                        vote.count = 1;
-                        var vote_detail = new voteDetailModel();
-                        vote_detail.personid = userid;
-                        vote_detail.score = parseInt(req.body.score);
-                        vote.details.push(vote_detail);
-                        vote.save(function(err) {
-                            if(err) {
+                        var doc = new voteModel();
+                        doc.collection_name = collection_name;
+                        doc.item_id = item_id;
+                        doc.score = score;
+                        doc.count = 1;
+                        var detail = new voteDetailModel();
+                        detail.personid = login;
+                        detail.score = score;
+                        doc.details[doc.details.length] = detail;
+                        doc.save(function(err) {
+                            if (err) {
                                 callback(-1, "Server error");
                             } else
-                                callback (vote.score);
+                                callback (score);
                         });
                     }
                 });

@@ -7,7 +7,8 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var fanDetailSchema = new Schema({
-    personid: String
+    _id: {type:ObjectId, select:false}
+    ,personid: String
     ,timestamp: {type: Date, default: Date.now}
 });
 
@@ -19,8 +20,9 @@ var fanSchema = new Schema({
 
 mongoose.connect('mongodb://localhost/test');
 var fanModel = mongoose.model('fan', fanSchema);
+var fanDetailModel = mongoose.model('fan_detail', fanDetailSchema);
 
-exports.get = function(collection_name, req, callback) {
+exports.get = function(collection_name, id, req, callback) {
     var login = utils.get_username(req);
     var password = utils.get_password(req);
     account.auth(login, password, function(r, msg) {
@@ -33,30 +35,21 @@ exports.get = function(collection_name, req, callback) {
             if(req.query.pagesize)
                 pagesize = parseInt(req.query.pagesize);
 
-            fanModel.count({"collection_name" : collection_name, "item_id": req.params.contentid}, function(err, count) {
+            fanModel.findOne({"collection_name": collection_name, "item_id": id}, function(err, doc) {
                 if(err) {
                     console.log(err);
                     callback(null, "Server error");
                 } else {
+                    var count = doc.fan.length;
                     var meta = {"status": "ok", "statuscode": 100,
                                 "totalitems": count, "itemsperpage": pagesize};
-                    if(count > page*pagesize) {
-                        fanModel.skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
-                            if(err) {
-                                console.log(err);
-                                callback(null, "Server error");
-                            } else {
-                                var data = new Array();
-                                for (var i; docs[i]; i++)
-                                    data[i] = {"person": docs[i]};
-                                var result = {"ocs": {"meta": meta, "data": data}};
-                                callback(result);
-                            }
-                        });
-                    } else {
-                        var result = {"ocs": {"meta": meta}};
-                        callback(result);
+                    var data = new Array();
+                    var skip = page*pagesize;
+                    for (var i = 0; (i < pagesize) && ((i + skip)<count); i++) {
+                        data[i] = {"person": doc.fan[i+skip]};
                     }
+                    var result = {"ocs": {"meta": meta, "data": data}};
+                    callback(result);
                 }
             });
         } else {
@@ -92,7 +85,7 @@ exports.add = function(collection_name, id, req, callback) {
     var login = utils.get_username(req);
     var password = utils.get_password(req);
     account.auth(login, password, function(r, msg) {
-        if(r) {   /* only authenticated user can use get */
+        if(r) {   /* only authenticated user can use add */
             fanModel.findOne({"collection_name" : collection_name, "item_id": id}, function(err, doc) {
                 if(err) {
                     console.log(err);
@@ -100,29 +93,46 @@ exports.add = function(collection_name, id, req, callback) {
                 } else {
                     var fan = {};
                     if(doc) {
-                        fan = doc;
                         for(var i = 0; doc.fan[i]; i++) {
                             if(doc.fan[i].personid == login) {
                                 callback(false, "You have already been the fan.");
                                 return;
                             }
                         }
+                        var fan_detail = new fanDetailModel();
+                        fan_detail.personid = login;
+                        doc.fan[doc.fan.length] = fan_detail;
+                        fanModel.update({_id:doc._id}, {fan: doc.fan}, function(err){
+                            if (err) {
+                                console.log(err);
+                                callback(false, "Server error");
+                            } else {
+                                callback(true);
+                            }
+                        });
                     } else {
-                        fan = new fanModel();
-                        fan.content = id;
+                        doc = new fanModel();
+                        doc.collection_name = collection_name;
+                        doc.item_id = id;
+                        doc.save(function(err) {
+                            if (err) {
+                                console.log(err);
+                                callback(false, "Server error");
+                            } else {
+                                var fan_detail = new fanDetailModel();
+                                fan_detail.personid = login;
+                                doc.fan[0] = fan_detail;
+                                fanModel.update({_id:doc._id}, {fan: doc.fan}, function(err){
+                                    if (err) {
+                                        console.log(err);
+                                        callback(false, "Server error");
+                                    } else {
+                                        callback(true);
+                                    }
+                                });
+                            }
+                        });
                     }
-                    
-                    var fan_detail = new fanDetailModel();
-                    fan_detail.personid = login;
-                    fan.fan.push(fan_detail);
-                    fan.save(function(err) {
-                        if(err) {
-                            console.log(err);
-                            callback(false, "Server error");
-                        } else {
-                            callback(true);
-                        }
-                    });
                 }
             });
         } else {
@@ -143,7 +153,7 @@ exports.remove = function(collection_name, id, req, callback) {
                 } else {
                     for(var i=0; doc.fan[i]; i++) {
                         if(doc.fan[i].personid == login) {
-                            doc.fan[i].remove();
+                            doc.fan.splice (i, 1);
                             doc.save(function(err) {
                                 if(err) {
                                     console.log(err);

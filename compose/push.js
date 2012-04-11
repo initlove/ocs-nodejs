@@ -10,21 +10,21 @@ var GridStore = require('mongodb').GridStore;
 
 var downloadDetailSchema = new Schema ({
     _id: {type: ObjectId, select: false}
-    ,way: Number
-    ,type: String
-    ,price: Number
-    ,link: String
-    ,name: String
-    ,size: Number
-    ,fingerprint: String
-    ,signature: String
-    ,pkgname: String
-    ,repo: String
+    ,downloadway: Number
+    ,downloadtype: String
+    ,downloadprice: Number
+    ,downloadlink: String
+    ,downloadname: String
+    ,downloadsize: Number
+    ,downloadfingerprint: String
+    ,downloadsignature: String
+    ,downloadpkgname: String
+    ,downloadrepo: String
 });
 
 var homepageDetailSchema = new Schema ({
-    url: String
-    ,type: String
+    homepageurl: String
+    ,homepagetype: String
 });
 
 var categorySchema = new Schema ({
@@ -124,11 +124,11 @@ add_app = function (repo, app) {
         content.changelog = app.changelog;
 
     var downloadDetail = new downloadDetailModel();
-    downloadDetail.way = 0;
-    downloadDetail.price = 0;
-    downloadDetail.name = app.name;
-    downloadDetail.pkgname = app.pkgname;
-    downloadDetail.repo = repo;
+    downloadDetail.downloadway = 0;
+    downloadDetail.downloadprice = 0;
+    downloadDetail.downloadname = app.name;
+    downloadDetail.downloadpkgname = app.pkgname;
+    downloadDetail.downloadrepo = repo;
 
     content.download.push(downloadDetail);
     var uri = get_icon_uri (app.icon);
