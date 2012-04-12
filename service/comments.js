@@ -9,19 +9,23 @@ var ObjectId = Schema.ObjectId;
 
 var commentSchema = new Schema({
     _id: {type:ObjectId, select:false}
-    ,id: {type:ObjectId, auto:true}
-    ,type: {type:Number}
-    ,subject: {type:String, required: true}
-    ,text: {type:String, required: true}
-    ,user: {type:String, required: true}
+    ,id: {type:ObjectId, auto:true, select: true}
+    ,type:String
+    ,childcount: {type:Number, default: 0, select: true}
+    ,subject: {type:String, required: true, select: true}
+    ,text: {type:String, required: true, select: true}
+    ,user: {type:String, required: true, select: true}
     /*TODO: select false! */
-    ,contentid: {type:String, required: true, select:true}
-    ,contentid2: {type: String, select:true}
-    ,parent: {type:String, default: "0", select:true}
+    ,contentid: {type:String, required: true}
+    ,contentid2: {type:String, default: "0"}
+    ,parent: {type:String, default: "0"}
 //    ,guestname: String
 //    ,guestemail: String
-    ,score: {type: Number, default: 50}
-    ,date: {type: Date, default: Date.now}
+    ,score: {type:Number, default: 50, select: true}
+    ,date: {type:Date, default: Date.now, select: true}
+    /*FIXME: if I remvoe the select attribute or if I set it to false
+     * I cannot push or use .length, why ? what is the trick point */
+    ,ancent: {type:[String], default:[], select: true}
 });
 
 function check_type(type) {
@@ -51,7 +55,7 @@ mongoose.connect('mongodb://localhost/test');
 var commentModel = mongoose.model('comments', commentSchema);
 
 exports.valid = function(id, callback) {
-    commentModel.findByOne({"id":id}, function(err, doc) {
+    commentModel.findOne({"id":id}, function(err, doc) {
         if(err)
             callback(false, "Server error");
         else if(doc)
@@ -61,53 +65,75 @@ exports.valid = function(id, callback) {
     });
 };
 
+function error_handle(req, res, err) {
+    var message = "";
+    if(err.errors.type) {
+        message = "wrong type";
+    } else if(err.errors.contentid) {
+        message = "content not found";
+    } else if(err.errors.subject || err.errors.text) {
+        message = "subject or message not found";
+/*
+    } else if(err.errors.guestemail) {
+        message = "please specify a valid email";
+*/
+    } else 
+        message = "system error in add comment";
+    utils.message(req, res, message);
+};
+
 function real_add_comment(req, res) {
     var comment = new commentModel();
-
     comment.type = req.body.type;
     comment.contentid = req.body.content;
-    comment.contentid2 = req.body.contentid2;
+    if (req.body.content2)
+        comment.contentid2 = req.body.content2;
     comment.parent = req.body.parent;
     comment.subject = req.body.subject;
     comment.text = req.body.message;
 //    comment.guestname = req.body.guestname;
 //    comment.guestemail = req.body.guestemail;
     comment.user = utils.get_username(req);
-
-    comment.save(function(err){
-        if(!err) {
-            if(req.body.parent != 0) {
-                commentModel.update({id: req.body.parent}, {$inc: {"childcount" :1}}, function(err) {
-                    if(err)
-                        console.log("Unable to update the parent child count");
+    if (req.body.parent && req.body.parent != 0) {
+        commentModel.findOne({id: req.body.parent}, function(err, doc) {
+            if (err) {
+                error_handle(req, res, err);
+            } else {
+                doc.ancent[doc.ancent.length] = req.body.parent;
+                comment.ancent = doc.ancent;
+                comment.save(function(err) {
+                    if (err) {
+                        error_handle(req, res, err);
+                    } else {
+                        content.addcomment (req.body.content, function (r, msg) {
+                            if (r) {
+                                utils.message(req, res, "ok");
+                            } else {
+                                utils.message(req, res, msg);
+                            }
+                        });
+                    }
                 });
             }
-            content.addcomment (req.body.content, function (r, msg) {
-                if (!r) {
-                    console.log (msg);
-                }
+            commentModel.update({id:req.body.parent}, {$inc: {childcount: 1}}, function (err) {
+                //TODO: need a rollback  if err
             });
-            /*TODO: as I did not add rollback function, so every thing is 'ok'*/
-            utils.message(req, res, "ok");
-            return;
-        } else {
-            var message = "";
-            if(err.errors.type) {
-                message = "wrong type";
-            } else if(err.errors.contentid) {
-                message = "content not found";
-            } else if(err.errors.subject || err.errors.text) {
-                message = "subject or message not found";
-/*
-            } else if(err.errors.guestemail) {
-                message = "please specify a valid email";
-*/
-            } else 
-                message = "system error in add comment";
-            utils.message(req, res, message);
-        }
-    });
-
+        });
+    } else {
+        comment.save(function(err){
+            if (err) {
+                error_handle(req, res, err);
+            } else {
+                content.addcomment (req.body.content, function (r, msg) {
+                    if (r) {
+                        utils.message(req, res, "ok");
+                    } else {
+                        utils.message(req, res, msg);
+                    }
+                });
+            }
+        });
+    }
 };
 
 function add_comment(req, res) {
@@ -157,24 +183,20 @@ function get_comments(req, res) {
     if(req.query.pagesize)
         pagesize = parseInt(req.query.pagesize);
 
-    var query = {"type" : req.params.type, "content" : req.params.contentid};
-    if(req.params.content2)
-        query.contentid2 = req.params.contentid2;
-    /* add the parent id */
-    if(req.query.parent)
-        query.parent = req.query.parent;
-    else
-        query.parent = '0';
+    var query = {"type" : req.params.type, "contentid" : req.params.contentid, "parent": "0"};
+    query.contentid2 = req.params.contentid2;
 
-/*TODO: find have problem */
     commentModel.find(query).skip(page * pagesize).limit(pagesize).exec(function(err, docs) {
         if(err) {
+            console.log(err);
             utils.message(req, res, "Server error");
         } else {
             var meta = {"status":"ok", "statuscode": 100};
             var data = new Array();
-            for (var i = 0; docs[i]; i++)
+            for (var i = 0; docs[i]; i++) {
                 data[i] = {"comment": docs[i]};
+                console.log (docs[i].id);
+            }
             var result = {"ocs": {"meta": meta, "data": data}};
             utils.info(req, res, result);
         }
@@ -201,7 +223,7 @@ exports.vote = function(req, res) {
         if(r) {
             vote.vote("comments", id, req, function(score, msg) {
                 if(score > -1) {
-                    commentModel.update({_id: id}, {score:score}, function(err) {
+                    commentModel.update({id: id}, {score:score}, function(err) {
                         if(err)
                             utils.message(req, res, "Server error");
                         else
