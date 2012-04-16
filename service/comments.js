@@ -8,9 +8,7 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var commentSchema = new Schema({
-    _id: {type:ObjectId, select:false}
-    ,id: {type:ObjectId, auto:true, select: true}
-    ,type:String
+    type:String
     ,childcount: {type:Number, default: 0, select: true}
     ,subject: {type:String, required: true, select: true}
     ,text: {type:String, required: true, select: true}
@@ -25,7 +23,7 @@ var commentSchema = new Schema({
     ,date: {type:Date, default: Date.now, select: true}
     /*FIXME: if I remvoe the select attribute or if I set it to false
      * I cannot push or use .length, why ? what is the trick point */
-    ,ancent: {type:[String], default:[], select: true}
+    ,path: {type:String, default:null, select:true}
 });
 
 function check_type(type) {
@@ -55,7 +53,7 @@ mongoose.connect('mongodb://localhost/test');
 var commentModel = mongoose.model('comments', commentSchema);
 
 exports.valid = function(id, callback) {
-    commentModel.findOne({"id":id}, function(err, doc) {
+    commentModel.findOne({_id:id}, function(err, doc) {
         if(err)
             callback(false, "Server error");
         else if(doc)
@@ -95,19 +93,21 @@ function real_add_comment(req, res) {
 //    comment.guestemail = req.body.guestemail;
     comment.user = utils.get_username(req);
     if (req.body.parent && req.body.parent != 0) {
-        commentModel.findOne({id: req.body.parent}, function(err, doc) {
+        commentModel.findOne({_id: req.body.parent}, function(err, doc) {
             if (err) {
                 error_handle(req, res, err);
             } else {
-                doc.ancent[doc.ancent.length] = req.body.parent;
-                comment.ancent = doc.ancent;
+                comment.path = doc.path + ":" + comment._id;
                 comment.save(function(err) {
                     if (err) {
                         error_handle(req, res, err);
                     } else {
                         content.addcomment (req.body.content, function (r, msg) {
                             if (r) {
-                                utils.message(req, res, "ok");
+                                var meta = {"status": "ok", "statuscode": 100};
+                                var data = {"commentid": comment._id};
+                                var result = {"ocs": {"meta": meta, "data": data}};
+                                utils.info(req, res, result);
                             } else {
                                 utils.message(req, res, msg);
                             }
@@ -115,18 +115,22 @@ function real_add_comment(req, res) {
                     }
                 });
             }
-            commentModel.update({id:req.body.parent}, {$inc: {childcount: 1}}, function (err) {
+            commentModel.update({_id:req.body.parent}, {$inc: {childcount: 1}}, function (err) {
                 //TODO: need a rollback  if err
             });
         });
     } else {
+        comment.path = comment._id;
         comment.save(function(err){
             if (err) {
                 error_handle(req, res, err);
             } else {
                 content.addcomment (req.body.content, function (r, msg) {
                     if (r) {
-                        utils.message(req, res, "ok");
+                        var meta = {"status": "ok", "statuscode": 100};
+                        var data = {"commentid": comment._id};
+                        var result = {"ocs": {"meta": meta, "data": data}};
+                        utils.info(req, res, result);
                     } else {
                         utils.message(req, res, msg);
                     }
@@ -175,6 +179,44 @@ exports.add = function(req, res) {
     });
 };
 
+function generate_children(req, res, regex){
+    commentModel.find({path: new RegExp(regex)}).asc("path").exec(function(err, docs) {
+        if (err) {
+            console.log(err);
+            utils.message(req, res, "Server error");
+        } else {
+            var meta = {"status":"ok", "statuscode":100};
+            var result = {"ocs": {"meta": meta, "data": new Array()}};
+            var data = new Array();
+            for (var i = 0; docs[i]; i++) {
+                data[i] = {"id": docs[i]._id,
+                            "subject": docs[i].subject,
+                            "text" : docs[i].text,
+                            "childcount": docs[i].childcount,
+                            "user": docs[i].user,
+                            "date": docs[i].date,
+                            "score": docs[i].score,
+                            "children": new Array()
+                        };
+                    
+                var v = docs[i].path.indexOf(":");
+                if (v < 0) {
+                    result.ocs.data.push ({"comment": data[i]});
+                } else {
+                    for (var j = i-1; j >= 0; j--) {
+                        var v = docs[i].path.match("^"+ docs[j].path);
+                        if (v != null) {
+                            data[j].children.push({"comment": data[i]});
+                            break;
+                        }
+                    }
+                }
+            }
+            utils.info(req, res, result);
+        }
+    });
+};
+
 function get_comments(req, res) {
     var page = 0;
     var pagesize = 10;
@@ -191,14 +233,13 @@ function get_comments(req, res) {
             console.log(err);
             utils.message(req, res, "Server error");
         } else {
-            var meta = {"status":"ok", "statuscode": 100};
-            var data = new Array();
+            var regex = "";
             for (var i = 0; docs[i]; i++) {
-                data[i] = {"comment": docs[i]};
-                console.log (docs[i].id);
+                if (i != 0)
+                    regex += "|";
+                regex += "^"+docs[i].path;
             }
-            var result = {"ocs": {"meta": meta, "data": data}};
-            utils.info(req, res, result);
+            generate_children(req, res, regex);
         }
     });
 };
@@ -223,7 +264,7 @@ exports.vote = function(req, res) {
         if(r) {
             vote.vote("comments", id, req, function(score, msg) {
                 if(score > -1) {
-                    commentModel.update({id: id}, {score:score}, function(err) {
+                    commentModel.update({_id: id}, {score:score}, function(err) {
                         if(err)
                             utils.message(req, res, "Server error");
                         else

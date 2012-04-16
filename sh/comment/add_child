@@ -1,1 +1,1 @@
-curl --data "type=1&content=4f841961be3ecca328000058&content2=0&parent=4f869fdd20b6a77f19000003&subject=sr1&message=mr1" http://test001:test001password@localhost:3000/comments/add
+curl --data "type=1&content=4f841961be3ecca328000058&content2=0&parent=4f8bd63c7d19b82d17000003&subject=sr1&message=mr1" http://test001:test001password@localhost:3000/comments/add
