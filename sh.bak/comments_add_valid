@@ -1,2 +1,0 @@
-curl --data "type=1&content=10023&parent=0&subject=linguissubject&message=linguistmsg001"  http://dliang:novell@localhost:3000/comments/add
-curl --data "type=1&content=10003&parent=0&subject=newlinguissubject&message=newlinguistmsg001"  http://dliang:novell@localhost:3000/comments/add

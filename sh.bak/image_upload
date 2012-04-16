@@ -1,1 +1,0 @@
-curl -F image=@gdm-pam-radio-type.patch http://localhost:3000/images/upload

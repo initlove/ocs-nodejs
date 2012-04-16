@@ -9,8 +9,7 @@ var server = require('mongodb').Server;
 var GridStore = require('mongodb').GridStore;
 
 var downloadDetailSchema = new Schema ({
-    _id: {type: ObjectId, select: false}
-    ,downloadway: Number
+    downloadway: Number
     ,downloadtype: String
     ,downloadprice: Number
     ,downloadlink: String
@@ -18,8 +17,8 @@ var downloadDetailSchema = new Schema ({
     ,downloadsize: Number
     ,downloadfingerprint: String
     ,downloadsignature: String
-    ,downloadpkgname: String
-    ,downloadrepo: String
+    ,downloadpackagename: String
+    ,downloadrepository: String
 });
 
 var homepageDetailSchema = new Schema ({
@@ -28,14 +27,11 @@ var homepageDetailSchema = new Schema ({
 });
 
 var categorySchema = new Schema ({
-    id: String
-    ,name: {type: String, unique: true, require: true}
+    name: {type: String, unique: true, require: true}
 });
 
 var contentSchema = new Schema({
-    _id: {type: ObjectId, select: false}
-    ,id: {type: ObjectId, auto: true}
-    ,name: {type: String}
+    name: {type: String}
     ,type: {type: String}
     ,typeid: String
     ,typename: String
@@ -44,7 +40,7 @@ var contentSchema = new Schema({
     ,depend: String
     ,description: String
     ,summary: String
-    ,licensetype: Number
+    ,licensetype: String
     ,license: String
     ,feedbackurl: String
     ,version: String
@@ -115,7 +111,7 @@ add_app = function (repo, app) {
     if (app.license)
         content.license = app.license;
     if (app.licensetype)
-        content.licensetype = parseInt (app.licensetype);
+        content.licensetype = app.licensetype;
     if (app.feedbackurl)
         content.feedbackurl = app.feedbackurl;
     if (app.version)
@@ -127,12 +123,11 @@ add_app = function (repo, app) {
     downloadDetail.downloadway = 0;
     downloadDetail.downloadprice = 0;
     downloadDetail.downloadname = app.name;
-    downloadDetail.downloadpkgname = app.pkgname;
-    downloadDetail.downloadrepo = repo;
+    downloadDetail.downloadpackagename = app.pkgname;
+    downloadDetail.downloadrepository = repo;
 
     content.download.push(downloadDetail);
     var uri = get_icon_uri (app.icon);
-
     if (uri) {
         var client = new db('test', new server('127.0.0.1', 27017, {}));
         client.open(function (err, connection) {
@@ -142,9 +137,8 @@ add_app = function (repo, app) {
                     gridStore.write(imageData, function (err, gridStore) {
                         gridStore.close(function (err, result) {
                             var icon_uri = "http://localhost:3000/images/" + result._id.toString();
-                            content.icon.push (icon_uri);
+                            content.icon.push(icon_uri);
                             content.save (function (err) {
-                                console.log ("app: " + app.name + " added\n");
                                 add_category (app);
                             });
                         });

@@ -1,2 +1,0 @@
-curl --data "guestname=DLGuest&guestemail='guest@guest.com'&type=1&content=linguist4.desktop&content2=c2&parent=0&subject=sb001&message=msg001"  http://localhost:3000/comments/add
-

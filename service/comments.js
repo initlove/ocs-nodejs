@@ -21,8 +21,6 @@ var commentSchema = new Schema({
 //    ,guestemail: String
     ,score: {type:Number, default: 50, select: true}
     ,date: {type:Date, default: Date.now, select: true}
-    /*FIXME: if I remvoe the select attribute or if I set it to false
-     * I cannot push or use .length, why ? what is the trick point */
     ,path: {type:String, default:null, select:true}
 });
 

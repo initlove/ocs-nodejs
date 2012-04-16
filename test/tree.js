@@ -23,3 +23,8 @@ for (var i = 0; result[i]; i++) {
 
 var xml = jsontoxml.obj_to_xml ({"ocs": root}, true);
 console.log(xml);
+
+var arr = ["a", "b"];
+var dl = {"ocs": {"hello": arr}};
+var xml1= jsontoxml.obj_to_xml (dl, true);
+console.log(xml1);

@@ -7,8 +7,7 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var downloadDetailSchema = new Schema({
-    _id: {type: ObjectId, select: false}
-    ,downloadway: Number
+    downloadway: Number
     ,downloadtype: String
     ,downloadprice: Number
     ,downloadlink: String
@@ -16,8 +15,8 @@ var downloadDetailSchema = new Schema({
     ,downloadsize: Number
     ,downloadfingerprint: String
     ,downloadsignature: String
-    ,downloadpkg: String
-    ,downloadrepo: String
+    ,downloadpackagename: String
+    ,downloadrepository: String
 });
 
 var homepageDetailSchema = new Schema({
@@ -26,14 +25,11 @@ var homepageDetailSchema = new Schema({
 });
 
 var categorySchema = new Schema({
-    id: String
-    ,name: String
+    name: String
 });
 
 var contentSchema = new Schema({
-    _id: {type: ObjectId, select: false}
-    ,id: {type: ObjectId, auto: true}
-    ,name: {type: String, required: true}
+    name: {type: String, required: true}
     ,type: {type: String, required: true}
     ,typeid: String
     ,typename: String
@@ -42,7 +38,7 @@ var contentSchema = new Schema({
     ,depend: String
     ,description: String
     ,summary: String
-    ,licensetype: Number
+    ,licensetype: String
     ,license: String
     ,feedbackurl: String
     ,version: String
@@ -55,37 +51,15 @@ var contentSchema = new Schema({
     ,comments: {type: Number, default: 0}
     ,fans: {type: Number, default: 0}
     ,downloads: {type: Number, default:0}
-    /*ocs way? 
-    ,downloadway1: Number
-    ,downloadtype1: String
-    ,downloadprice1: Number
-    ,downloadlink1: String
-    ,downloadname1: String
-    ,downloadsize1: Number
-    ,downloadgpgfingerprint1: String
-    ,downloadgpgsignature1: String
-    ,downloadpackagename1: String
-    ,downloadrepository1: String
-    ,downloadway2: Number
-    ,downloadtype2: String
-    ,downloadprice2: Number
-    ,downloadlink2: String
-    ,downloadname2: String
-    ,downloadsize2: Number
-    ,downloadgpgfingerprint2: String
-    ,downloadgpgsignature2: String
-    ,downloadpackagename2: String
-    ,downloadrepository2: String
-    ,icon: String
-    */
+    ,created: {type: Date, default: Date.now}
+    ,changed: Date
+
     ,download: {type: [downloadDetailSchema], default:[]}
     ,homepage: {type: [homepageDetailSchema], default:[]}
     ,smallpreview: {type: [String], default:[]}
     ,preview: {type: [String], default:[]}
     ,icon: {type: [String], default:[]}
     ,video: {type: [String], default:[]}
-    ,created: {type: Date, default: Date.now}
-    ,changed: Date
 });
 
 /*TODO: disconnect it ?  or keep it ? */
@@ -94,7 +68,7 @@ var contentModel = mongoose.model('content', contentSchema);
 var categoryModel = mongoose.model('category', categorySchema);
 
 exports.valid = function(id, callback) {
-    contentModel.findOne({"id":id}, function(err, doc) {
+    contentModel.findOne({_id:id}, function(err, doc) {
         if(err)
             callback(false, "Server error");
         else if(doc)
@@ -125,7 +99,7 @@ exports.add = function(req, res) {
     if(req.body.license)
         content.license = req.body.license;
     if(req.body.licensetype)
-        content.licensetype = parseInt(req.body.licensetype);
+        content.licensetype = req.body.licensetype;
     if(req.body.feedbackurl)
         content.feedbackurl = req.body.feedbackurl;
     if(req.body.version)
@@ -141,6 +115,65 @@ exports.add = function(req, res) {
         }
     });
 }
+
+function publish_content(doc) {
+    var content = { id: doc._id,
+                    name: doc.name,
+                    type: doc.type,
+                    typeid: doc.typeid,
+                    typename: doc.typename,
+                    language: doc.language,
+                    personid: doc.personid,
+                    depend: doc.depend,
+                    description: doc.description,
+                    summary: doc.summary,
+                    licensetype: doc.licensetype,
+                    license: doc.license,
+                    feedbackurl: doc.feedbackurl,
+                    version: doc.version,
+                    changelog: doc.changelog,
+                    donation: doc.donation,
+                    donationreason: doc.donationreason,
+                    osbsproject: doc.osbsproject,
+                    osbspackage: doc.osbspackage,
+                    score: doc.score,
+                    comments: doc.comments,
+                    fans: doc.fans,
+                    downloads: doc.downloads,
+                    created: doc.created,
+                    changed: doc.changed};
+
+    for (var i = 0; doc.icon[i]; i++) {
+        content["smallpreview"+i] = doc.smallpreview[i];
+    }
+    for (var i = 0; doc.icon[i]; i++) {
+        content["preview"+i] = doc.preview[i];
+    }
+    for (var i = 0; doc.icon[i]; i++) {
+        content["icon"+i] = doc.icon[i];
+    }
+    for (var i = 0; doc.icon[i]; i++) {
+        content["video"+i] = doc.video[i];
+    }
+    for (var i = 0; doc.download[i]; i++) {
+        content["downloadway"+i] = doc.download[i].downloadway;
+        content["downloadtype"+i] = doc.download[i].downloadtype;
+        content["downloadprice"+i] = doc.download[i].downloadprice;
+        content["downloadlink"+i] = doc.download[i].downloadlink;
+        content["downloadname"+i] = doc.download[i].downloadname;
+        content["downloadsize"+i] = doc.download[i].downloadsize;
+        content["downloadfingerprint"+i] = doc.download[i].downloadfingerprint;
+        content["downloadsignature"+i] = doc.download[i].downloadsignature;
+        content["downloadpackagename"+i] = doc.download[i].downloadpackagename;
+        content["downloadrepository"+i] = doc.download[i].downloadrepository;
+    }
+    for (var i = 0; doc.homepage[i]; i++) {
+        content["homepage"+i] = doc.homepage[i].homepageurl;
+        content["homepagetype"+i] = doc.homepage[i].homepagetype;
+    }
+
+    return content;
+};
 
 exports.list = function(req, res) {
     var page = 0;
@@ -188,7 +221,7 @@ exports.list = function(req, res) {
                                     "totalitems": count, "itemsperpage": pagesize};
                         var data = new Array();
                         for (var i = 0; docs[i]; i++) {
-                            data[i] = {"content": docs[i]};
+                            data[i] = {"content": publish_content(docs[i])};
                         }
                         var result = {"ocs": {"meta": meta, "data": data}};
                         utils.info(req, res, result);
@@ -206,13 +239,13 @@ exports.list = function(req, res) {
 
 exports.get = function(req, res) {
     var id = req.params.contentid;
-    contentModel.findOne({"id": id}, function(err, doc) {
+    contentModel.findOne({_id: id}, function(err, doc) {
         if(err) {
             utils.message(req, res, "Server error");
         } else if(doc) {
             var meta = {"status": "ok", "statuscode": 100};
             var data = new Array();
-            data[0] = {"content": doc};
+            data[0] = {"content": publish_content(doc)};
             var result = {"ocs": {"meta": meta, "data": data}};
             utils.info(req, res, result);
         } else {
@@ -237,23 +270,32 @@ exports.categories = function(req, res) {
 };
 
 /*TODO: if someone download it already, donnot charge it? 
- * 
+ * add the download -map for all the user?
  */
 exports.download = function(req, res) {
     var id = req.params.contentid;
-    contentModel.findOne({"id": id}, function(err, doc) {
+    contentModel.findOne({_id: id}, function(err, doc) {
         if(err) {
             utils.message(req, res, "Server error");
         } else if(doc) {
             for(var i = 0; doc.download[i]; i++) {
                 if(doc.download[i].downloadway == req.params.itemid) {
-                    contentModel.update({"_id" : id}, {$inc: {"downloads" :1}}, function(err) {
+                    contentModel.update({_id : id}, {$inc: {"downloads" :1}}, function(err) {
                         if(err) {
                             utils.message(req, res, "Server error");
                         } else {
                             var meta = {"status": "ok", "statuscode": 100};
                             var data = new Array();
-                            data[0] = {"content": doc.download[i]};
+                            data[0] = {"content": {
+                                            "downloadway": doc.download[i].downloadway,
+                                            "downloadlink": doc.download[i].downloadlink,
+                                            "mimetype": "TODO",
+                                            "packagename" : doc.download[i].downloadpackagename,
+                                            "packagerepository": doc.download[i].downloadrepository,
+                                            "gpgfingerprint": doc.download[i].downloadfingerprint,
+                                            "gpgsignature": doc.download[i].downloadsignature
+                                            }
+                                        };
                             var result = {"ocs": {"meta": meta, "data": data}};
                             utils.info(req, res, result);
                         }
@@ -274,7 +316,7 @@ exports.vote = function(req, res) {
         if(r) {
             vote.vote("content", id, req, function(score, msg) {
                 if(score > -1) {
-                    contentModel.update({id: id}, {score:score}, function(err) {
+                    contentModel.update({_id: id}, {score:score}, function(err) {
                         if(err)
                             utils.message(req, res, "Server error");
                         else
@@ -336,7 +378,7 @@ exports.addfan = function(req, res) {
         if(r) {
             fan.add("content", id, req, function(r, msg) {
                 if(r) {
-                    contentModel.update({id:id}, {$inc: {"fans":1}}, function(err) {
+                    contentModel.update({_id:id}, {$inc: {"fans":1}}, function(err) {
                         if(err) {
                             utils.message(req, res, "Server error");
                         } else
@@ -358,7 +400,7 @@ exports.removefan = function(req, res) {
         if(r) {
             fan.remove("content", id, req, function(r, msg) {
                 if(r) {
-                    contentModel.update({id:id}, {$inc: {"fans":-1}}, function(err) {
+                    contentModel.update({_id:id}, {$inc: {"fans":-1}}, function(err) {
                         if(err) {
                             utils.message(req, res, "Server error");
                         } else
@@ -375,7 +417,7 @@ exports.removefan = function(req, res) {
 };
 
 exports.addcomment = function(id, callback) {
-    contentModel.update({id: id}, {$inc: {"comments":1}}, function(err) {
+    contentModel.update({_id: id}, {$inc: {"comments":1}}, function(err) {
         if (err) {
             callback(false, "Server error");
         } else {

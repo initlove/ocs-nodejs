@@ -1,6 +1,0 @@
-curl --data "type=1&content=c1001&content2=c2&parent=0&subject=sb001&message=msg001"  http://localhost:3000/comments/add
-curl --data "type=1&content=c1001&content2=c2&parent=0&subject=sb002&message=msg002"  http://localhost:3000/comments/add
-curl --data "type=1&content=c1001&content2=c2&parent=0&subject=sb003&message=msg003"  http://localhost:3000/comments/add
-curl --data "type=1&content=c1004&content2=c2004&parent=p004&subject=sb004&message=msg004"  http://localhost:3000/comments/add
-curl --data "type=1&content=c1005&content2=c2005&parent=p005&subject=sb005&message=msg005"  http://localhost:3000/comments/add
-curl --data "type=1&content=c1006&content2=c2006&parent=p006&subject=sb006&message=msg006"  http://localhost:3000/comments/add
