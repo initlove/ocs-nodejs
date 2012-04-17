@@ -1,5 +1,6 @@
 var utils = require('./utils');
 var vote = require('./vote');
+var account = require('./account');
 var fan = require('./fan');
 var express = require('express');
 var mongoose = require('mongoose');
@@ -314,17 +315,27 @@ exports.vote = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            vote.vote("content", id, req, function(score, msg) {
-                if(score > -1) {
-                    contentModel.update({_id: id}, {score:score}, function(err) {
-                        if(err)
-                            utils.message(req, res, "Server error");
-                        else
-                            utils.message(req, res, "ok");
-                    });
-                } else {
+            var login = utils.get_username(req);
+            var password = utils.get_password(req);
+            account.auth(login, password, function(r, msg) {
+                if (!r) {
                     utils.message(req, res, msg);
+                    return;
                 }
+                var url = "content:"+id;
+                vote.realvote(req, url, function(score, msg) {
+                    if(score > -1) {
+                        contentModel.update({_id: id}, {score:score}, function(err) {
+                            if(err) {
+                                console.log(err);
+                                utils.message(req, res, "Server error");
+                            } else
+                                utils.message(req, res, "ok");
+                        });
+                    } else {
+                        utils.message(req, res, msg);
+                    }
+                });
             });
         } else {
             utils.message(req, res, msg);
@@ -340,14 +351,21 @@ exports.isfan = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            fan.isfan("content", id, req, function(r, msg) {
-                if(!r && msg) {
+            var login = utils.get_username(req);
+            var password = utils.get_password(req);
+            account.auth(login, password, function(r, msg) {
+                if (!r) {
                     utils.message(req, res, msg);
-                } else {
-                    var meta = {"status": "ok", "statuscode": 100};
-                    var result = {"ocs": {"meta": meta, "data": {"status": r ? "fan":"notfan"}}};
-                    utils.info(req, res, result);
+                    return;
                 }
+                var url = "content:"+id;
+                fan.fanstatus(req, url, function(result, msg) {
+                    if (result) {
+                        utils.info(req, res, result);
+                    } else {
+                        utils.message(req, res, msg);
+                    }
+                });
             });
         } else {
             utils.message(req, res, msg);
@@ -359,12 +377,22 @@ exports.getfan = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            fan.get("content", id, req, function(result, msg) {
-                if(result) {
-                    utils.info(req, res, result);
-                } else {
+            var login = utils.get_username(req);
+            var password = utils.get_password(req);
+            account.auth(login, password, function(r, msg) {
+                if (!r) {
                     utils.message(req, res, msg);
+                    return;
                 }
+                    
+                var url = "content:"+id;
+                fan.getfans(req, url, function(result, msg) {
+                    if(result) {
+                        utils.info(req, res, result);
+                    } else {
+                        utils.message(req, res, msg);
+                    }
+                });
             });
         } else {
             utils.message(req, res, msg);
@@ -376,17 +404,27 @@ exports.addfan = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            fan.add("content", id, req, function(r, msg) {
-                if(r) {
-                    contentModel.update({_id:id}, {$inc: {"fans":1}}, function(err) {
-                        if(err) {
-                            utils.message(req, res, "Server error");
-                        } else
-                            utils.message(req, res, "ok");
-                    });
-                } else {
+            var login = utils.get_username(req);
+            var password = utils.get_password(req);
+            account.auth(login, password, function(r, msg) {
+                if (!r) {
                     utils.message(req, res, msg);
+                    return;
                 }
+
+                var url = "content:"+id;
+                fan.addfan(req, url, function(r, msg) {
+                    if(r) {
+                        contentModel.update({_id:id}, {$inc: {"fans":1}}, function(err) {
+                            if(err) {
+                                utils.message(req, res, "Server error");
+                            } else
+                                utils.message(req, res, "ok");
+                        });
+                    } else {
+                        utils.message(req, res, msg);
+                    }
+                });
             });
         } else {
             utils.message(req, res, msg);
@@ -398,17 +436,55 @@ exports.removefan = function(req, res) {
     var id = req.params.contentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            fan.remove("content", id, req, function(r, msg) {
-                if(r) {
-                    contentModel.update({_id:id}, {$inc: {"fans":-1}}, function(err) {
-                        if(err) {
-                            utils.message(req, res, "Server error");
-                        } else
-                            utils.message(req, res, "ok");
-                    });
-                } else {
+            var login = utils.get_username(req);
+            var password = utils.get_password(req);
+            account.auth(login, password, function(r, msg) {
+                if (!r) {
                     utils.message(req, res, msg);
+                    return;
                 }
+                var url = "content:"+id;
+                fan.removefan(req, url, function(r, msg) {
+                    if(r) {
+                        contentModel.update({_id:id}, {$inc: {"fans":-1}}, function(err) {
+                            if(err) {
+                                utils.message(req, res, "Server error");
+                            } else
+                                utils.message(req, res, "ok");
+                        });
+                    } else {
+                        utils.message(req, res, msg);
+                    }
+                });
+            });
+        } else {
+            utils.message(req, res, msg);
+        }
+    });
+};
+
+function check_type(type) {
+    if(!type)
+        return false;
+    if(type == '1' || type == '4' || type == '7' || type == '8')
+        return true;
+    return false;
+};
+
+exports.getcomment = function(req, res) {
+    if (!check_type(req.params.type)) {
+        utils.message(req, res, "wrong type");
+        return;
+    }
+
+    var id = req.params.contentid;
+    exports.valid(id, function(r, msg) {
+        if (r) {
+            comment.getcomment(req, url, function(result, msg) {
+                if (result)
+                    utils.info(req, res, result);
+                else
+                    utils.message(req, res, msg);
             });
         } else {
             utils.message(req, res, msg);

@@ -24,18 +24,6 @@ var commentSchema = new Schema({
     ,path: {type:String, default:null, select:true}
 });
 
-function check_type(type) {
-    if(!type)
-        return false;
-    if(type == '1' || type == '4' || type == '7' || type == '8')
-        return true;
-    return false;
-};
-
-commentSchema.path('type').validate(function(v){
-    return check_type(v);
-});
-
 /*
 commentSchema.path('guestemail').validate(function(v){
     if(v) {
@@ -138,7 +126,7 @@ function real_add_comment(req, res) {
     }
 };
 
-function add_comment(req, res) {
+exports.addcomment(req, url, callback) {
     var contentid = req.body.content;
     var parent = req.body.parent;
 
@@ -167,21 +155,24 @@ exports.add = function(req, res) {
     var password = utils.get_password(req);
     account.auth(login, password, function(r, msg) {
         if(r) {
-            add_comment(req, res);
+            var url = "comment:"+req.params.urlmd5;
+            exporets.addcomment(req, url, function(r, msg){
+                if (r)
+                    utils.message(req, res, "ok");
+                else
+                    utils.message(req, res, msg);
+            });
         } else {
-//            if(req.body.guestname && req.body.guestemail) {
-//                add_comment(req, res);
-//            } else
-                utils.message(req, res, msg);
+            utils.message(req, res, msg);
         }
     });
 };
 
-function generate_children(req, res, regex){
+function generate_children(regex, callback){
     commentModel.find({path: new RegExp(regex)}).asc("path").exec(function(err, docs) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            return callback(false, "Server error");
         } else {
             var meta = {"status":"ok", "statuscode":100};
             var result = {"ocs": {"meta": meta, "data": new Array()}};
@@ -210,12 +201,12 @@ function generate_children(req, res, regex){
                     }
                 }
             }
-            utils.info(req, res, result);
+            return callback(true, result);
         }
     });
 };
 
-function get_comments(req, res) {
+exports.getcomment = function(req, url, callback) {
     var page = 0;
     var pagesize = 10;
     if(req.query.page)
@@ -223,13 +214,12 @@ function get_comments(req, res) {
     if(req.query.pagesize)
         pagesize = parseInt(req.query.pagesize);
 
-    var query = {"type" : req.params.type, "contentid" : req.params.contentid, "parent": "0"};
-    query.contentid2 = req.params.contentid2;
+    var query = {url: url, parent: "0"};
 
     commentModel.find(query).skip(page * pagesize).limit(pagesize).exec(function(err, docs) {
         if(err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            callback(false, "Server error");
         } else {
             var regex = "";
             for (var i = 0; docs[i]; i++) {
@@ -237,19 +227,16 @@ function get_comments(req, res) {
                     regex += "|";
                 regex += "^"+docs[i].path;
             }
-            generate_children(req, res, regex);
+            generate_children(regex, callback);
         }
     });
 };
 
 exports.get = function(req, res) {
-    if(!check_type(req.params.type)) {
-        utils.message(req, res, "wrong type");
-        return;
-    }
-    content.valid(req.params.contentid, function(r, msg) {
-        if(r) {
-            get_comments(req, res);
+    var url = "comment:"+req.params.urlmd5;
+    exports.getcomment(req, url, function(result, msg) {
+        if (result) {
+            utils.info(req, res, result);
         } else {
             utils.message(req, res, msg);
         }
@@ -260,7 +247,8 @@ exports.vote = function(req, res) {
     var id = req.params.commentid;
     exports.valid(id, function(r, msg) {
         if(r) {
-            vote.vote("comments", id, req, function(score, msg) {
+            var url = "comments:"+id;
+            vote.realvote(req, url, function(score, msg) {
                 if(score > -1) {
                     commentModel.update({_id: id}, {score:score}, function(err) {
                         if(err)

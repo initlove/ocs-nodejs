@@ -63,5 +63,23 @@ app.post('/comments/vote/:commentid', comments.vote);
 app.post ('/images/upload', images.upload);
 app.get('/images/:imageid', images.get);
 
+/* the following is restful, try to make the service out of the ocs standard */
+/* TODO: change to 
+ *  fan.localhost/:urlmd5
+ *  fan.localhost/:urlmd5/fans
+ *  fan.localhost/:personid/follow
+ */
+app.get('/:urlmd5/fanstatus', fan.status);
+app.post('/:urlmd5/fanstatus', fan.add);
+app.delete('/:urlmd5/fanstatus', fan.remove);
+app.get('/:urlmd5/fans', fan.get);
+app.get('/:personid/follow', fan.follow);
+
+app.post('/:urlmd5/vote', vote.add);
+/*
+app.get('/:urlmd5/comment', comments.get);
+app.post('/:urlmd5/comment', comments.add);
+
+*/
 app.listen(3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
