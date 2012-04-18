@@ -59,13 +59,13 @@ exports.get = function(req, res) {
         if (r) {
             exports.getfans(req, url, function(result, msg) {
                 if (result) {
-                    utils.info(req, res, result);
+                    return utils.info(req, res, result);
                 } else {
-                    utils.message(req, res, msg);
+                    return utils.message(req, res, msg);
                 }
             });
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, msg);
         }
     });
 };
@@ -109,13 +109,13 @@ exports.status = function(req, res) {
         if(r) {
             exports.fanstatus(req, req.params.url, function(result, msg) {
                 if (result) {
-                    utils.info(req, res, result);
+                    return utils.info(req, res, result);
                 } else {
-                    utils.message(req, res, msg);
+                    return utils.message(req, res, msg);
                 }
             });
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, msg);
         }
     });
 };
@@ -160,9 +160,9 @@ exports.add = function(req, res) {
         if(r) {   /* only authenticated user can use add */
             exports.addfan(req, url, function(r, msg) {
                 if (r) {
-                    utils.info(req, res, "ok");
+                    return utils.info(req, res, "ok");
                 } else {
-                    utils.message(req, res, msg);
+                    return utils.message(req, res, msg);
                 }
             });
         } else {
@@ -179,8 +179,10 @@ exports.removefan = function(req, url, callback) {
         } else {
             console.log(doc);
             var login = utils.get_username(req);
+            var found = false;
             for (var i=0; doc.fan[i]; i++) {
                 if (doc.fan[i].personid == login) {
+                    found = true;
                     doc.fan.splice (i, 1);
                     doc.save(function(err) {
                         if(err) {
@@ -190,10 +192,10 @@ exports.removefan = function(req, url, callback) {
                             return callback(true);
                         }
                     });
-                    return;
                 }
             }
-            return callback(false, "You are not the fan");
+            if (!found)
+                return callback(false, "You are not the fan");
         }
     });
 };
@@ -205,13 +207,13 @@ exports.remove = function(req, res) {
         if(r) {
             exports.removefan(req, req.params.urlmd5, function (r, msg) {
                 if (r) {
-                    utils.message(req, res, "ok");
+                    return utils.message(req, res, "ok");
                 } else {
-                    utils.message(req, res, msg);
+                    return utils.message(req, res, msg);
                 }
             });
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, msg);
         }
     });
 };
@@ -222,9 +224,9 @@ exports.follow = function(req, res) {
     account.auth(login, password, function(r, msg) {
         if(r) {
     /*TODO: the element test*/        
-            utils.message(req, res, "ok");
+            return utils.message(req, res, "ok");
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, msg);
         }
     });
 };

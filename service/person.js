@@ -47,13 +47,12 @@ exports.valid = function(personid, callback) {
 
 exports.check = function(req, res) {
     if (!req.body.login || !req.body.password) {
-        utils.message(req, res, "please specify all mandatory fields");
-        return;
+        return utils.message(req, res, "please specify all mandatory fields");
     }
 
     personModel.findOne({'personid': req.body.login}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            return utils.message(req, res, "Server error");
         } else if (doc) {
             account.auth(req.body.login, req.body.password, function(r, msg) {
                 if (r) {
@@ -61,13 +60,13 @@ exports.check = function(req, res) {
                     var data = new Array();
                     data [0] = {"person": {"personid": req.body.login}};
                     var result = {"ocs": {"meta": meta, "data": data}};
-                    utils.info(req, res, result);
+                    return utils.info(req, res, result);
                 } else {
-                    utils.message(req, res, msg);
+                    return utils.message(req, res, msg);
                 }
             });
         } else {
-            utils.message(req, res, "login not valid");
+            return utils.message(req, res, "login not valid");
         }
     });
 };
@@ -79,21 +78,20 @@ exports.getself = function(req, res) {
         if (r) {
             personModel.findOne({'personid': personid}, function(err, doc) {
                 if (err) {
-                    utils.message(req, res, "Server error");
                     console.log(err);
+                    return utils.message(req, res, "Server error");
                 } else if (doc) {
                     var meta = {"status":"ok", "statuscode":100};
                     var data = new Array();
                     data[0] = {"person": doc};
                     var result = {"ocs": {"meta": meta, "data": data}};
-                    utils.info(req, res, result);
+                    return utils.info(req, res, result);
                 } else {
-                    utils.message(req, res, "Server error");
-                    console.log("Cannot find the person : ", + personid);
+                    return utils.message(req, res, "Server error: cannot find the person.");
                 }
             });
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, msg);
         }
     });
 };

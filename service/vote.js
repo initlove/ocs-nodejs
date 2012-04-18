@@ -87,10 +87,16 @@ exports.vote = function(req, res) {
     account.auth(login, password, function(r, msg) {
         if (r) {
             exports.realvote(req, req.params.urlmd5, function(score, msg) {
+                if (score < 0) {
+                    utils.message(req, res, msg);
+                } else {
+                    var meta = {"status":"ok", "statuscode":100};
+                    var result = {"ocs": {"meta": meta, "data": {"score": score}}};
+                    utils.info(req, res, result);
+                }
             });
-
         } else {
-            callback(-1, msg);
+            utils.message(req, res, msg);
         }
     });
 };

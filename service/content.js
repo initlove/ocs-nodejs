@@ -1,6 +1,7 @@
 var utils = require('./utils');
 var vote = require('./vote');
 var account = require('./account');
+var comment = require('./comments');
 var fan = require('./fan');
 var express = require('express');
 var mongoose = require('mongoose');
@@ -67,17 +68,6 @@ var contentSchema = new Schema({
 mongoose.connect('mongodb://localhost/test');
 var contentModel = mongoose.model('content', contentSchema);
 var categoryModel = mongoose.model('category', categorySchema);
-
-exports.valid = function(id, callback) {
-    contentModel.findOne({_id:id}, function(err, doc) {
-        if(err)
-            callback(false, "Server error");
-        else if(doc)
-            callback(true);
-        else
-            callback(false, "content not found");
-    });
-};
 
 exports.add = function(req, res) {
     if(!req.body.name || !req.body.type) {
@@ -313,44 +303,46 @@ exports.download = function(req, res) {
 
 exports.vote = function(req, res) {
     var id = req.params.contentid;
-    exports.valid(id, function(r, msg) {
-        if(r) {
+    contentModel.findOne({_id:id}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
             var login = utils.get_username(req);
             var password = utils.get_password(req);
             account.auth(login, password, function(r, msg) {
                 if (!r) {
-                    utils.message(req, res, msg);
-                    return;
+                    return utils.message(req, res, msg);
                 }
                 var url = "content:"+id;
                 vote.realvote(req, url, function(score, msg) {
                     if(score > -1) {
-                        contentModel.update({_id: id}, {score:score}, function(err) {
+                        doc.score = score;
+                        doc.save(function(err) {
                             if(err) {
                                 console.log(err);
-                                utils.message(req, res, "Server error");
+                                return utils.message(req, res, "Server error");
                             } else
-                                utils.message(req, res, "ok");
+                                return utils.message(req, res, "ok");
                         });
                     } else {
-                        utils.message(req, res, msg);
+                        return utils.message(req, res, msg);
                     }
                 });
             });
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, "content not found");
         }
     });
 };
 
-/*TODO:add the service to get the apps of a friend
- */
-
-
 exports.isfan = function(req, res) {
     var id = req.params.contentid;
-    exports.valid(id, function(r, msg) {
-        if(r) {
+    contentModel.findOne({_id:id}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
             var login = utils.get_username(req);
             var password = utils.get_password(req);
             account.auth(login, password, function(r, msg) {
@@ -368,42 +360,47 @@ exports.isfan = function(req, res) {
                 });
             });
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "content not found");
         }
     });
 };
 
 exports.getfan = function(req, res) {
     var id = req.params.contentid;
-    exports.valid(id, function(r, msg) {
-        if(r) {
+    contentModel.findOne({_id:id}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
             var login = utils.get_username(req);
             var password = utils.get_password(req);
             account.auth(login, password, function(r, msg) {
                 if (!r) {
-                    utils.message(req, res, msg);
-                    return;
+                    return utils.message(req, res, msg);
                 }
                     
                 var url = "content:"+id;
                 fan.getfans(req, url, function(result, msg) {
                     if(result) {
-                        utils.info(req, res, result);
+                        return utils.info(req, res, result);
                     } else {
-                        utils.message(req, res, msg);
+                        return utils.message(req, res, msg);
                     }
                 });
             });
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, "content not found");
         }
     });
 };
 
 exports.addfan = function(req, res) {
     var id = req.params.contentid;
-    exports.valid(id, function(r, msg) {
-        if(r) {
+    contentModel.findOne({_id:id}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
             var login = utils.get_username(req);
             var password = utils.get_password(req);
             account.auth(login, password, function(r, msg) {
@@ -411,11 +408,11 @@ exports.addfan = function(req, res) {
                     utils.message(req, res, msg);
                     return;
                 }
-
                 var url = "content:"+id;
                 fan.addfan(req, url, function(r, msg) {
                     if(r) {
-                        contentModel.update({_id:id}, {$inc: {"fans":1}}, function(err) {
+                        doc.fans+=1;
+                        doc.save(function(err) {
                             if(err) {
                                 utils.message(req, res, "Server error");
                             } else
@@ -427,15 +424,18 @@ exports.addfan = function(req, res) {
                 });
             });
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "content not found");
         }
     });
 };
 
 exports.removefan = function(req, res) {
     var id = req.params.contentid;
-    exports.valid(id, function(r, msg) {
-        if(r) {
+    contentModel.findOne({_id:id}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
             var login = utils.get_username(req);
             var password = utils.get_password(req);
             account.auth(login, password, function(r, msg) {
@@ -446,7 +446,8 @@ exports.removefan = function(req, res) {
                 var url = "content:"+id;
                 fan.removefan(req, url, function(r, msg) {
                     if(r) {
-                        contentModel.update({_id:id}, {$inc: {"fans":-1}}, function(err) {
+                        doc.fans -= 1;
+                        doc.save(function(err) {
                             if(err) {
                                 utils.message(req, res, "Server error");
                             } else
@@ -458,7 +459,7 @@ exports.removefan = function(req, res) {
                 });
             });
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "content not found");
         }
     });
 };
@@ -478,8 +479,12 @@ exports.getcomment = function(req, res) {
     }
 
     var id = req.params.contentid;
-    exports.valid(id, function(r, msg) {
-        if (r) {
+    contentModel.findOne({_id:id}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
+            var url = "content:"+id;
             comment.getcomment(req, url, function(result, msg) {
                 if (result)
                     utils.info(req, res, result);
@@ -487,17 +492,48 @@ exports.getcomment = function(req, res) {
                     utils.message(req, res, msg);
             });
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "content not found");
         }
     });
 };
 
-exports.addcomment = function(id, callback) {
-    contentModel.update({_id: id}, {$inc: {"comments":1}}, function(err) {
+exports.addcomment = function(req, res) {
+    var id = req.body.content;
+    contentModel.findOne({_id:id}, function(err, doc) {
         if (err) {
-            callback(false, "Server error");
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
+            var login = utils.get_username(req);
+            var password = utils.get_password(req);
+            account.auth(login, password, function(r, msg) {
+                if (r) {
+                    var url = "";
+                    if (req.body.parent && (req.body.parent != 0))
+                        url = req.body.parent;
+                    else
+                        url = "content:"+id;
+                    comment.addcomment(req, url, function(r, msg) {
+                        if (r) {
+                            doc.comments+=1;
+                            doc.save(function(err) {
+                                if (err) {
+                                    console.log(err);
+                                    utils.message(req, res, "Server error");
+                                } else {
+                                    utils.message(req, res, "ok");
+                                }
+                            });
+                        } else {
+                            utils.message(req, res, msg);
+                        }
+                    });
+                } else {
+                    utils.message(req, res, msg);
+                }
+            });
         } else {
-            callback(true);
+            utils.message(req, res, "content not found");
         }
     });
 };

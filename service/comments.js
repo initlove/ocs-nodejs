@@ -8,20 +8,16 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var commentSchema = new Schema({
-    type:String
-    ,childcount: {type:Number, default: 0, select: true}
-    ,subject: {type:String, required: true, select: true}
-    ,text: {type:String, required: true, select: true}
-    ,user: {type:String, required: true, select: true}
-    /*TODO: select false! */
-    ,contentid: {type:String, required: true}
-    ,contentid2: {type:String, default: "0"}
-    ,parent: {type:String, default: "0"}
+    url: {type:String, required: true}
+    ,childcount: {type:Number, default: 0}
+    ,subject: {type:String, required: true}
+    ,message: {type:String, required: true}
+    ,user: {type:String, required: true}
 //    ,guestname: String
 //    ,guestemail: String
-    ,score: {type:Number, default: 50, select: true}
-    ,date: {type:Date, default: Date.now, select: true}
-    ,path: {type:String, default:null, select:true}
+    ,score: {type:Number, default: 50}
+    ,date: {type:Date, default: Date.now}
+    ,path: {type:String}
 });
 
 /*
@@ -38,115 +34,45 @@ commentSchema.path('guestemail').validate(function(v){
 mongoose.connect('mongodb://localhost/test');
 var commentModel = mongoose.model('comments', commentSchema);
 
-exports.valid = function(id, callback) {
-    commentModel.findOne({_id:id}, function(err, doc) {
-        if(err)
-            callback(false, "Server error");
-        else if(doc)
-            callback(true);
-        else
-            callback(false, "item id not found");
-    });
-};
-
-function error_handle(req, res, err) {
+function error_msg(err) {
     var message = "";
-    if(err.errors.type) {
-        message = "wrong type";
-    } else if(err.errors.contentid) {
-        message = "content not found";
+    if(err.errors.url) {
+        message = "url should not be empty";
     } else if(err.errors.subject || err.errors.text) {
         message = "subject or message not found";
-/*
-    } else if(err.errors.guestemail) {
-        message = "please specify a valid email";
-*/
     } else 
         message = "system error in add comment";
-    utils.message(req, res, message);
+    return message;
 };
 
-function real_add_comment(req, res) {
+exports.addcomment = function(req, url, callback) {
     var comment = new commentModel();
-    comment.type = req.body.type;
-    comment.contentid = req.body.content;
-    if (req.body.content2)
-        comment.contentid2 = req.body.content2;
-    comment.parent = req.body.parent;
+    comment.url = url;
     comment.subject = req.body.subject;
-    comment.text = req.body.message;
-//    comment.guestname = req.body.guestname;
-//    comment.guestemail = req.body.guestemail;
+    comment.message = req.body.message;
     comment.user = utils.get_username(req);
-    if (req.body.parent && req.body.parent != 0) {
-        commentModel.findOne({_id: req.body.parent}, function(err, doc) {
-            if (err) {
-                error_handle(req, res, err);
-            } else {
-                comment.path = doc.path + ":" + comment._id;
-                comment.save(function(err) {
-                    if (err) {
-                        error_handle(req, res, err);
-                    } else {
-                        content.addcomment (req.body.content, function (r, msg) {
-                            if (r) {
-                                var meta = {"status": "ok", "statuscode": 100};
-                                var data = {"commentid": comment._id};
-                                var result = {"ocs": {"meta": meta, "data": data}};
-                                utils.info(req, res, result);
-                            } else {
-                                utils.message(req, res, msg);
-                            }
-                        });
-                    }
-                });
-            }
-            commentModel.update({_id:req.body.parent}, {$inc: {childcount: 1}}, function (err) {
-                //TODO: need a rollback  if err
-            });
-        });
-    } else {
-        comment.path = comment._id;
-        comment.save(function(err){
-            if (err) {
-                error_handle(req, res, err);
-            } else {
-                content.addcomment (req.body.content, function (r, msg) {
-                    if (r) {
-                        var meta = {"status": "ok", "statuscode": 100};
-                        var data = {"commentid": comment._id};
-                        var result = {"ocs": {"meta": meta, "data": data}};
-                        utils.info(req, res, result);
-                    } else {
-                        utils.message(req, res, msg);
-                    }
-                });
-            }
-        });
-    }
-};
-
-exports.addcomment(req, url, callback) {
-    var contentid = req.body.content;
-    var parent = req.body.parent;
-
-    content.valid(contentid, function(r, msg) {
-        if(r) {
-            if(parent && parent != '0') {
-                exports.valid(parent, function(r, msg) {
-                    if(r) {
-                        real_add_comment(req, res);
-                    } else {
-                        utils.message(req, res, msg);
-                    }
-                });
-            } else {
-                real_add_comment(req, res);
-            }
-
+    commentModel.findOne({_id:url}, function(err, doc) {
+        /* err may mean the id is the url from outside */
+        if (doc) {
+            comment.path = doc.path + ":" + comment._id;
         } else {
-            utils.message(req, res, msg);
+            comment.path = comment._id;
         }
+        comment.save(function(err) {
+            if (err) {
+                return callback(false, error_msg(err));
+            } else if (doc) {
+                doc.childcount += 1;
+                doc.save(function(err) {
+                    if (err) {
+                        console.log(err);
+                        return callback(false, "Server error");
+                    } else
+                        return callback(true);
+                });
+            } else
+                return callback(true);
+        });
     });
 };
 
@@ -155,8 +81,8 @@ exports.add = function(req, res) {
     var password = utils.get_password(req);
     account.auth(login, password, function(r, msg) {
         if(r) {
-            var url = "comment:"+req.params.urlmd5;
-            exporets.addcomment(req, url, function(r, msg){
+            var url = req.params.urlmd5;
+            exports.addcomment(req, url, function(r, msg){
                 if (r)
                     utils.message(req, res, "ok");
                 else
@@ -172,7 +98,7 @@ function generate_children(regex, callback){
     commentModel.find({path: new RegExp(regex)}).asc("path").exec(function(err, docs) {
         if (err) {
             console.log(err);
-            return callback(false, "Server error");
+            return callback(null, "Server error");
         } else {
             var meta = {"status":"ok", "statuscode":100};
             var result = {"ocs": {"meta": meta, "data": new Array()}};
@@ -180,7 +106,7 @@ function generate_children(regex, callback){
             for (var i = 0; docs[i]; i++) {
                 data[i] = {"id": docs[i]._id,
                             "subject": docs[i].subject,
-                            "text" : docs[i].text,
+                            "text" : docs[i].message,
                             "childcount": docs[i].childcount,
                             "user": docs[i].user,
                             "date": docs[i].date,
@@ -188,6 +114,13 @@ function generate_children(regex, callback){
                             "children": new Array()
                         };
                     
+                /* In fact, we need not todo this, if some of the patch did not match the previews one,
+                 * we can take as the orignial comment,
+                 * the problem not solved is, what if we remove the orignal comment,
+                 * or if we remove the parent comment?
+                 * as the remove function is not done, I left it as TODO:
+                 * to make comment system stronger, I should fix it one day 
+                 */
                 var v = docs[i].path.indexOf(":");
                 if (v < 0) {
                     result.ocs.data.push ({"comment": data[i]});
@@ -201,7 +134,7 @@ function generate_children(regex, callback){
                     }
                 }
             }
-            return callback(true, result);
+            return callback(result);
         }
     });
 };
@@ -214,26 +147,30 @@ exports.getcomment = function(req, url, callback) {
     if(req.query.pagesize)
         pagesize = parseInt(req.query.pagesize);
 
-    var query = {url: url, parent: "0"};
+    var query = {url: url};
 
     commentModel.find(query).skip(page * pagesize).limit(pagesize).exec(function(err, docs) {
         if(err) {
             console.log(err);
-            callback(false, "Server error");
+            return callback(null, "Server error");
         } else {
-            var regex = "";
-            for (var i = 0; docs[i]; i++) {
-                if (i != 0)
-                    regex += "|";
-                regex += "^"+docs[i].path;
+            if (!docs.length) {
+                return callback(null, "ok");
+            } else {
+                var regex = "";
+                for (var i = 0; docs[i]; i++) {
+                    if (i != 0)
+                        regex += "|";
+                    regex += "^"+docs[i].path;
+                }
+                generate_children(regex, callback);
             }
-            generate_children(regex, callback);
         }
     });
 };
 
 exports.get = function(req, res) {
-    var url = "comment:"+req.params.urlmd5;
+    var url = req.params.urlmd5;
     exports.getcomment(req, url, function(result, msg) {
         if (result) {
             utils.info(req, res, result);
@@ -245,12 +182,13 @@ exports.get = function(req, res) {
 
 exports.vote = function(req, res) {
     var id = req.params.commentid;
-    exports.valid(id, function(r, msg) {
-        if(r) {
+    commentModel.findOne({_id:id}, function(err, doc) {
+        if (doc) {
             var url = "comments:"+id;
             vote.realvote(req, url, function(score, msg) {
                 if(score > -1) {
-                    commentModel.update({_id: id}, {score:score}, function(err) {
+                    doc.score = score;
+                    doc.save(function(err) {
                         if(err)
                             utils.message(req, res, "Server error");
                         else
@@ -261,7 +199,7 @@ exports.vote = function(req, res) {
                 }
             });
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "comment not found");
         }
     });
 };
