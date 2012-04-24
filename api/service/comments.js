@@ -100,9 +100,12 @@ function generate_children(regex, callback){
             console.log(err);
             return callback(null, "Server error");
         } else {
+
             var meta = {"status":"ok", "statuscode":100};
             var result = {"ocs": {"meta": meta, "data": new Array()}};
             var data = new Array();
+            var cache = new Array();
+            cache[0] = result.ocs.data;
             for (var i = 0; docs[i]; i++) {
                 data[i] = {"id": docs[i]._id,
                             "subject": docs[i].subject,
@@ -114,25 +117,9 @@ function generate_children(regex, callback){
                             "children": new Array()
                         };
                     
-                /* In fact, we need not todo this, if some of the patch did not match the previews one,
-                 * we can take as the orignial comment,
-                 * the problem not solved is, what if we remove the orignal comment,
-                 * or if we remove the parent comment?
-                 * as the remove function is not done, I left it as TODO:
-                 * to make comment system stronger, I should fix it one day 
-                 */
-                var v = docs[i].path.indexOf(":");
-                if (v < 0) {
-                    result.ocs.data.push ({"comment": data[i]});
-                } else {
-                    for (var j = i-1; j >= 0; j--) {
-                        var v = docs[i].path.match("^"+ docs[j].path);
-                        if (v != null) {
-                            data[j].children.push({"comment": data[i]});
-                            break;
-                        }
-                    }
-                }
+                var count = docs[i].path.split(":").length;
+                cache[count] = data[i].children;
+                cache[count-1].push({"comment": data[i]});
             }
             return callback(result);
         }
