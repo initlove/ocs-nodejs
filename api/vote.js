@@ -1,4 +1,3 @@
-var account = require('./account');
 var utils = require('./utils');
 var express = require('express');
 var mongoose = require('mongoose');
@@ -82,21 +81,13 @@ exports.realvote = function(req, url, callback) {
 };
 
 exports.vote = function(req, res) {
-    var login = utils.get_username (req);
-    var password = utils.get_password (req);
-    account.auth(login, password, function(r, msg) {
-        if (r) {
-            exports.realvote(req, req.params.urlmd5, function(score, msg) {
-                if (score < 0) {
-                    utils.message(req, res, msg);
-                } else {
-                    var meta = {"status":"ok", "statuscode":100};
-                    var result = {"ocs": {"meta": meta, "data": {"score": score}}};
-                    utils.info(req, res, result);
-                }
-            });
-        } else {
+    exports.realvote(req, req.params.urlmd5, function(score, msg) {
+        if (score < 0) {
             utils.message(req, res, msg);
+        } else {
+            var meta = {"status":"ok", "statuscode":100};
+            var result = {"ocs": {"meta": meta, "data": {"score": score}}};
+            utils.info(req, res, result);
         }
     });
 };

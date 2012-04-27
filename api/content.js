@@ -1,7 +1,6 @@
 var utils = require('./utils');
 var vote = require('./vote');
-var account = require('./account');
-var comment = require('./comments');
+var comment = require('./comment');
 var fan = require('./fan');
 var express = require('express');
 var mongoose = require('mongoose');
@@ -70,36 +69,36 @@ var contentModel = mongoose.model('content', contentSchema);
 var categoryModel = mongoose.model('category', categorySchema);
 
 exports.add = function(req, res) {
-    if(!req.body.name || !req.body.type) {
+    if (!req.body.name || !req.body.type) {
         utils.message(req, res, "please specify all mandatory fields");
         return;
     }
     var content = new contentModel();
     content.name = req.body.name;
     content.type = req.body.type;
-    if(req.body.language)
+    if (req.body.language)
         content.language = req.body.language;
-    if(req.body.personid)
+    if (req.body.personid)
         content.personid = req.body.personid;
-    if(req.body.depend)
+    if (req.body.depend)
         content.depend = req.body.depend;
-    if(req.body.description)
+    if (req.body.description)
         content.description = req.body.description;
-    if(req.body.summary)
+    if (req.body.summary)
         content.summary = req.body.summary;
-    if(req.body.license)
+    if (req.body.license)
         content.license = req.body.license;
-    if(req.body.licensetype)
+    if (req.body.licensetype)
         content.licensetype = req.body.licensetype;
-    if(req.body.feedbackurl)
+    if (req.body.feedbackurl)
         content.feedbackurl = req.body.feedbackurl;
-    if(req.body.version)
+    if (req.body.version)
         content.version = req.body.version;
-    if(req.body.changelog)
+    if (req.body.changelog)
         content.changelog = req.body.changelog;
 
     content.save(function(err){
-        if(err) {
+        if (err) {
             utils.message(req, res, "Server error");
         } else {
             utils.message(req, res, "ok");
@@ -170,41 +169,41 @@ exports.list = function(req, res) {
     var page = 0;
     var pagesize = 10;
 
-    if(req.query.page)
+    if (req.query.page)
         page = parseInt(req.query.page);
-    if(req.query.pagesize)
+    if (req.query.pagesize)
         pagesize = parseInt(req.query.pagesize);
 
     var query = {};
-    if(req.query.search) {
+    if (req.query.search) {
         query.$or = new Array();
         query.$or[0] = {"name" : new RegExp(req.query.search, 'i')};
         query.$or[1] = {"summary" : new RegExp(req.query.search, 'i')};
     }
-    if(req.query.categories) {
+    if (req.query.categories) {
         var category_array = req.query.categories.split("x");
         query.appcategories = {$in: category_array};
     }
 
     var sort_filed = 'date';
-    if(req.query.sort) {
-        if(req.query.sort == "new") {
-        } else if(req.query.sort == "alpha") {
+    if (req.query.sort) {
+        if (req.query.sort == "new") {
+        } else if (req.query.sort == "alpha") {
             sort_filed = 'id';
-        } else if(req.query.sort == "high") {
+        } else if (req.query.sort == "high") {
             sort_filed = 'score';
-        } else if(req.query.sort == "down") {
+        } else if (req.query.sort == "down") {
             sort_filed = 'downloads';
         }
     }
     contentModel.count(query, function(err, count) {
-        if(err) {
+        if (err) {
             utils.message(req, res, "Server error");
             console.log(err);
         } else {
-            if(count > page*pagesize) {
+            if (count > page*pagesize) {
                 contentModel.find(query).asc(sort_filed).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
-                    if(err) {
+                    if (err) {
                         utils.message(req, res, "Server error");
                         console.log(err);
                     } else {
@@ -231,9 +230,9 @@ exports.list = function(req, res) {
 exports.get = function(req, res) {
     var id = req.params.contentid;
     contentModel.findOne({_id: id}, function(err, doc) {
-        if(err) {
+        if (err) {
             utils.message(req, res, "Server error");
-        } else if(doc) {
+        } else if (doc) {
             var meta = {"status": "ok", "statuscode": 100};
             var data = new Array();
             data[0] = {"content": publish_content(doc)};
@@ -247,7 +246,7 @@ exports.get = function(req, res) {
 
 exports.categories = function(req, res) {
     categoryModel.find({}, function(err, docs) {
-        if(err) {
+        if (err) {
             utils.message(req, res, "Server error");
         } else {
             var meta = {"status": "ok", "statuscode": 100};
@@ -266,13 +265,13 @@ exports.categories = function(req, res) {
 exports.download = function(req, res) {
     var id = req.params.contentid;
     contentModel.findOne({_id: id}, function(err, doc) {
-        if(err) {
+        if (err) {
             utils.message(req, res, "Server error");
-        } else if(doc) {
+        } else if (doc) {
             for(var i = 0; doc.download[i]; i++) {
-                if(doc.download[i].downloadway == req.params.itemid) {
+                if (doc.download[i].downloadway == req.params.itemid) {
                     contentModel.update({_id : id}, {$inc: {"downloads" :1}}, function(err) {
-                        if(err) {
+                        if (err) {
                             utils.message(req, res, "Server error");
                         } else {
                             var meta = {"status": "ok", "statuscode": 100};
@@ -308,27 +307,20 @@ exports.vote = function(req, res) {
             console.log(err);
             return utils.message(req, res, "Server error");
         } else if (doc) {
-            var login = utils.get_username(req);
-            var password = utils.get_password(req);
-            account.auth(login, password, function(r, msg) {
-                if (!r) {
+            var url = "content:"+id;
+            vote.realvote(req, url, function(score, msg) {
+                if (score > -1) {
+                    doc.score = score;
+                    doc.save(function(err) {
+                        if (err) {
+                            console.log(err);
+                            return utils.message(req, res, "Server error");
+                        } else
+                            return utils.message(req, res, "ok");
+                    });
+                } else {
                     return utils.message(req, res, msg);
                 }
-                var url = "content:"+id;
-                vote.realvote(req, url, function(score, msg) {
-                    if(score > -1) {
-                        doc.score = score;
-                        doc.save(function(err) {
-                            if(err) {
-                                console.log(err);
-                                return utils.message(req, res, "Server error");
-                            } else
-                                return utils.message(req, res, "ok");
-                        });
-                    } else {
-                        return utils.message(req, res, msg);
-                    }
-                });
             });
         } else {
             return utils.message(req, res, "content not found");
@@ -343,21 +335,13 @@ exports.isfan = function(req, res) {
             console.log(err);
             return utils.message(req, res, "Server error");
         } else if (doc) {
-            var login = utils.get_username(req);
-            var password = utils.get_password(req);
-            account.auth(login, password, function(r, msg) {
-                if (!r) {
+            var url = "content:"+id;
+            fan.fanstatus(req, url, function(result, msg) {
+                if (result) {
+                    utils.info(req, res, result);
+                } else {
                     utils.message(req, res, msg);
-                    return;
                 }
-                var url = "content:"+id;
-                fan.fanstatus(req, url, function(result, msg) {
-                    if (result) {
-                        utils.info(req, res, result);
-                    } else {
-                        utils.message(req, res, msg);
-                    }
-                });
             });
         } else {
             utils.message(req, res, "content not found");
@@ -372,21 +356,13 @@ exports.getfan = function(req, res) {
             console.log(err);
             return utils.message(req, res, "Server error");
         } else if (doc) {
-            var login = utils.get_username(req);
-            var password = utils.get_password(req);
-            account.auth(login, password, function(r, msg) {
-                if (!r) {
+            var url = "content:"+id;
+            fan.getfans(req, url, function(result, msg) {
+                if (result) {
+                    return utils.info(req, res, result);
+                } else {
                     return utils.message(req, res, msg);
                 }
-                    
-                var url = "content:"+id;
-                fan.getfans(req, url, function(result, msg) {
-                    if(result) {
-                        return utils.info(req, res, result);
-                    } else {
-                        return utils.message(req, res, msg);
-                    }
-                });
             });
         } else {
             return utils.message(req, res, "content not found");
@@ -401,27 +377,19 @@ exports.addfan = function(req, res) {
             console.log(err);
             return utils.message(req, res, "Server error");
         } else if (doc) {
-            var login = utils.get_username(req);
-            var password = utils.get_password(req);
-            account.auth(login, password, function(r, msg) {
-                if (!r) {
+            var url = "content:"+id;
+            fan.addfan(req, url, function(r, msg) {
+                if (r) {
+                    doc.fans+=1;
+                    doc.save(function(err) {
+                        if (err) {
+                            utils.message(req, res, "Server error");
+                        } else
+                            utils.message(req, res, "ok");
+                    });
+                } else {
                     utils.message(req, res, msg);
-                    return;
                 }
-                var url = "content:"+id;
-                fan.addfan(req, url, function(r, msg) {
-                    if(r) {
-                        doc.fans+=1;
-                        doc.save(function(err) {
-                            if(err) {
-                                utils.message(req, res, "Server error");
-                            } else
-                                utils.message(req, res, "ok");
-                        });
-                    } else {
-                        utils.message(req, res, msg);
-                    }
-                });
             });
         } else {
             utils.message(req, res, "content not found");
@@ -436,27 +404,19 @@ exports.removefan = function(req, res) {
             console.log(err);
             return utils.message(req, res, "Server error");
         } else if (doc) {
-            var login = utils.get_username(req);
-            var password = utils.get_password(req);
-            account.auth(login, password, function(r, msg) {
-                if (!r) {
+            var url = "content:"+id;
+            fan.removefan(req, url, function(r, msg) {
+                if (r) {
+                    doc.fans -= 1;
+                    doc.save(function(err) {
+                        if (err) {
+                            utils.message(req, res, "Server error");
+                        } else
+                            utils.message(req, res, "ok");
+                    });
+                } else {
                     utils.message(req, res, msg);
-                    return;
                 }
-                var url = "content:"+id;
-                fan.removefan(req, url, function(r, msg) {
-                    if(r) {
-                        doc.fans -= 1;
-                        doc.save(function(err) {
-                            if(err) {
-                                utils.message(req, res, "Server error");
-                            } else
-                                utils.message(req, res, "ok");
-                        });
-                    } else {
-                        utils.message(req, res, msg);
-                    }
-                });
             });
         } else {
             utils.message(req, res, "content not found");
@@ -465,9 +425,9 @@ exports.removefan = function(req, res) {
 };
 
 function check_type(type) {
-    if(!type)
+    if (!type)
         return false;
-    if(type == '1' || type == '4' || type == '7' || type == '8')
+    if (type == '1' || type == '4' || type == '7' || type == '8')
         return true;
     return false;
 };
@@ -504,28 +464,20 @@ exports.addcomment = function(req, res) {
             console.log(err);
             return utils.message(req, res, "Server error");
         } else if (doc) {
-            var login = utils.get_username(req);
-            var password = utils.get_password(req);
-            account.auth(login, password, function(r, msg) {
+            var url = "";
+            if (req.body.parent && (req.body.parent != 0))
+                url = req.body.parent;
+            else
+                url = "content:"+id;
+            comment.addcomment(req, url, function(r, msg) {
                 if (r) {
-                    var url = "";
-                    if (req.body.parent && (req.body.parent != 0))
-                        url = req.body.parent;
-                    else
-                        url = "content:"+id;
-                    comment.addcomment(req, url, function(r, msg) {
-                        if (r) {
-                            doc.comments+=1;
-                            doc.save(function(err) {
-                                if (err) {
-                                    console.log(err);
-                                    utils.message(req, res, "Server error");
-                                } else {
-                                    utils.message(req, res, "ok");
-                                }
-                            });
+                    doc.comments+=1;
+                    doc.save(function(err) {
+                        if (err) {
+                            console.log(err);
+                            utils.message(req, res, "Server error");
                         } else {
-                            utils.message(req, res, msg);
+                            utils.message(req, res, "ok");
                         }
                     });
                 } else {

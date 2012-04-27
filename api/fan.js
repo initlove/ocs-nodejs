@@ -1,4 +1,3 @@
-var account = require('./account');
 var content = require('./content');
 var utils   = require('./utils');
 var express = require('express');
@@ -53,17 +52,9 @@ exports.getfans = function(req, url, callback) {
 
 exports.get = function(req, res) {
     var url = req.params.urlmd5;
-    var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if (r) {
-            exports.getfans(req, url, function(result, msg) {
-                if (result) {
-                    return utils.info(req, res, result);
-                } else {
-                    return utils.message(req, res, msg);
-                }
-            });
+    exports.getfans(req, url, function(result, msg) {
+        if (result) {
+            return utils.info(req, res, result);
         } else {
             return utils.message(req, res, msg);
         }
@@ -72,48 +63,23 @@ exports.get = function(req, res) {
 
 exports.fanstatus = function(req, url, callback) {
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {
-            /*TODO: element match */
-            fanModel.findOne({url: url}, function(err, doc) {
-                if(err) {
-                    console.log(err);
-                    return callback(null, "Server error");
-                } else {
-                    var isfan = false;
-                    console.log(doc);
-                    if (doc) {
-                        for (var i = 0; doc.fan[i]; i++) {
-                            if (doc.fan[i].personid == login) {
-                                isfan = true;
-                                break;
-                            }
-                        }
-                    }
-                    var meta = {"status": "ok", "statuscode": 100};
-                    var result = {"ocs": {"meta": meta, "data": {"status": isfan?"fan":"notfan"}}};
-                    return callback(result);
-                }
-            });
+    fanModel.findOne({url: url, fan: login}, function(err, doc) {
+        if(err) {
+            console.log(err);
+            return callback(null, "Server error");
         } else {
-            return callback(null, msg);
+            var meta = {"status": "ok", "statuscode": 100};
+            var result = {"ocs": {"meta": meta, "data": {"status": doc?"fan":"notfan"}}};
+            return callback(result);
         }
     });
 };
 
 exports.status = function(req, res) {
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {
-            exports.fanstatus(req, req.params.url, function(result, msg) {
-                if (result) {
-                    return utils.info(req, res, result);
-                } else {
-                    return utils.message(req, res, msg);
-                }
-            });
+    exports.fanstatus(req, req.params.url, function(result, msg) {
+        if (result) {
+            return utils.info(req, res, result);
         } else {
             return utils.message(req, res, msg);
         }
@@ -155,18 +121,11 @@ exports.addfan = function(req, url, callback) {
 exports.add = function(req, res) {
     var url = req.params.urlmd5;
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {   /* only authenticated user can use add */
-            exports.addfan(req, url, function(r, msg) {
-                if (r) {
-                    return utils.info(req, res, "ok");
-                } else {
-                    return utils.message(req, res, msg);
-                }
-            });
+    exports.addfan(req, url, function(r, msg) {
+        if (r) {
+            return utils.info(req, res, "ok");
         } else {
-            utils.message(req, res, msg);
+            return utils.message(req, res, msg);
         }
     });
 };
@@ -179,10 +138,9 @@ exports.removefan = function(req, url, callback) {
         } else {
             console.log(doc);
             var login = utils.get_username(req);
-            var found = false;
-            for (var i=0; doc.fan[i]; i++) {
+            var len = doc.fan.length;
+            for (var i=0; i < len; i++) {
                 if (doc.fan[i].personid == login) {
-                    found = true;
                     doc.fan.splice (i, 1);
                     doc.save(function(err) {
                         if(err) {
@@ -194,8 +152,7 @@ exports.removefan = function(req, url, callback) {
                     });
                 }
             }
-            if (!found)
-                return callback(false, "You are not the fan");
+            return callback(false, "You are not the fan");
         }
     });
 };
@@ -203,15 +160,9 @@ exports.removefan = function(req, url, callback) {
 exports.remove = function(req, res) {
     var login = utils.get_username(req);
     var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {
-            exports.removefan(req, req.params.urlmd5, function (r, msg) {
-                if (r) {
-                    return utils.message(req, res, "ok");
-                } else {
-                    return utils.message(req, res, msg);
-                }
-            });
+    exports.removefan(req, req.params.urlmd5, function (r, msg) {
+        if (r) {
+            return utils.message(req, res, "ok");
         } else {
             return utils.message(req, res, msg);
         }
@@ -220,13 +171,5 @@ exports.remove = function(req, res) {
 
 exports.follow = function(req, res) {
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {
     /*TODO: the element test*/        
-            return utils.message(req, res, "ok");
-        } else {
-            return utils.message(req, res, msg);
-        }
-    });
 };

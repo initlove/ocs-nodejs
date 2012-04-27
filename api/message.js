@@ -1,4 +1,3 @@
-var account = require('./account');
 var person = require('./person');
 var utils = require('./utils');
 var express = require('express');
@@ -36,24 +35,18 @@ exports.send = function(req, res){
         return;
     }
 
-    account.auth(login, password, function(r, msg) {
+    person.valid(to, function(r, msg) {
         if(r) {
-            person.valid(to, function(r, msg) {
-                if(r) {
-                    var message = new messageModel();
-                    message.from = login;
-                    message.to = to;
-                    message.subject = req.body.subject;
-                    message.body = req.body.message;
-                    message.save(function(err) {
-                        if(err)
-                            utils.message(req, res, "Server error");
-                        else
-                            utils.message(req, res, "ok");
-                    });
-                } else {
-                    utils.message(req, res, msg);
-                }
+            var message = new messageModel();
+            message.from = login;
+            message.to = to;
+            message.subject = req.body.subject;
+            message.body = req.body.message;
+            message.save(function(err) {
+                if(err)
+                    utils.message(req, res, "Server error");
+                else
+                    utils.message(req, res, "ok");
             });
         } else {
             utils.message(req, res, msg);
@@ -64,48 +57,43 @@ exports.send = function(req, res){
 exports.list = function(req, res){
     var login = utils.get_username(req);
     var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {
-            var page = 0;
-            var pagesize = 10;
-            if(req.query.page)
-                page = parseInt(req.query.page);
-            if(req.query.pagesize)
-                pagesize = parseInt(req.query.pagesize);
+    var page = 0;
+    var pagesize = 10;
+    if(req.query.page)
+        page = parseInt(req.query.page);
+    if(req.query.pagesize)
+        pagesize = parseInt(req.query.pagesize);
 
-            var query = {};
-            var i = 0;
-            if(req.query.search) {
-                query.$or = new Array();
-                query.$or[i++] = {"subject" : new RegExp(req.query.search, 'i')};
-                query.$or[i++] = {"message" : new RegExp(req.query.search, 'i')};
-            }
+    var query = {};
+    var i = 0;
+    if(req.query.search) {
+        query.$or = new Array();
+        query.$or[i++] = {"subject" : new RegExp(req.query.search, 'i')};
+        query.$or[i++] = {"message" : new RegExp(req.query.search, 'i')};
+    }
             
-            var userid = '';
-            if(req.query.with) {
-                userid = req.query.with;
-            } else
-                userid = login;
-            if(!query.$or)
-                query.$or = new Array();
-            query.$or[i++] = {"from" : userid};
-            query.$or[i++] = {"to": userid};
+    var userid = '';
+    if(req.query.with) {
+        userid = req.query.with;
+    } else
+        userid = login;
+    if(!query.$or)
+        query.$or = new Array();
+    query.$or[i++] = {"from" : userid};
+    query.$or[i++] = {"to": userid};
 
-            messageModel.find(query).skip(page*pagesize).limit(pagesize).exec(function(err,docs) {
-                if(err) {
-                    utils.message(req, res, "Server error");
-                } else {
-                    var meta = {"status":"ok", "statuscode": 100};
-                    var data = new Array();
-                    for (var i = 0; docs[i]; i++) {
-                        data[i] = {"message": docs[i]};
-                    }
-                    var result = {"ocs": {"meta": meta, "data": data}};
-                    utils.info(req, res, result);
-                }
-            });
+    messageModel.find(query).skip(page*pagesize).limit(pagesize).exec(function(err,docs) {
+        if(err) {
+            utils.message(req, res, "Server error");
         } else {
-            utils.message(req, res, msg);
+            var meta = {"status":"ok", "statuscode": 100};
+            var data = new Array();
+            var len = docs[i].length;
+            for (var i = 0; i < len; i++) {
+                data[i] = {"message": docs[i]};
+            }
+            var result = {"ocs": {"meta": meta, "data": data}};
+            utils.info(req, res, result);
         }
     });
 }

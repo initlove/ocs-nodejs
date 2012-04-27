@@ -5,10 +5,11 @@
 var config = require('./config');
 var fan = require('./fan');
 var vote = require('./vote');
+var account = require('./account');
 var content = require('./content');
-var comments = require('./comments');
+var comment = require('./comment');
 var person = require('./person');
-var images = require('./images');
+var image = require('./image');
 var message = require('./message');
 var express = require('express');
 var form = require('connect-form');
@@ -36,33 +37,80 @@ app.get('/config', config.get);
 app.post('/person/check', person.check);
 app.post('/person/add', person.add);
 app.post('/person/remove', person.remove);
-app.get('/person/data', person.search);
-app.get('/person/data/:personid', person.get);
-app.get('/person/self', person.getself);
-app.post('/person/self', person.edit);
-app.get('/person/balance', person.get_balance);
+app.get('/person/data', function(req, res) {
+    account.authenticate(req, res, person.search);
+});
+app.get('/person/data/:personid', function(req, res) {
+    account.authenticate(req, res, person.get);
+});
+app.get('/person/self', function(req, res) {
+    account.authenticate(req, res, person.getself);
+});
+app.post('/person/self', function(req, res) {
+    account.authenticate(req, res, person.edit);
+});
+app.get('/person/balance', function(req, res) {
+    account.authenticate(req, res, person.get_balance);
+});
 
-app.get('/message', message.list);
-app.post('/message', message.send);
+app.get('/friend/status/:personid', function(req, res) {
+    account.authenticate(req, res, friend.status);
+});
+app.get('/friend/data/:personid', function(req, res) {
+    account.authenticate(req, res, friend.get);
+});
+app.get('/friend/receivedinvitations', function(req, res) {
+    account.authenticate(req, res, friend.rece);
+});
+app.get('/friend/sentinvitations', function(req, res) {
+    account.authenticate(req, res, friend.sent);
+});
+app.post('/friend/invite/:personid', function(req, res) {
+    account.authenticate(req, res, friend.invite);
+});
+app.post('/friend/cancel/:personid', function(req, res) {
+    account.authenticate(req, res, friend.cancel);
+});
 
-app.get('/fan/data/:contentid', content.getfan);
-app.get('/fan/status/:contentid', content.isfan);
-app.post('/fan/add/:contentid', content.addfan);
-app.post('/fan/remove/:contentid', content.removefan);
+app.get('/message', function(req, res) {
+    account.authenticate(req, res, message.list);
+});
+app.post('/message', function(req, res) {
+    account.authenticate(req, res, message.send);
+});
+
+app.get('/fan/data/:contentid', function(req, res) {
+    account.authenticate(req, res, content.getfan);
+});
+app.get('/fan/status/:contentid', function(req, res) {
+    account.authenticate(req, res, content.isfan);
+});
+app.post('/fan/add/:contentid', function(req, res) {
+    account.authenticate(req, res, content.addfan);
+});
+app.post('/fan/remove/:contentid', function(req, res) {
+    account.authenticate(req, res, content.removefan);
+});
 
 app.post('/content/add', content.add);
 app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);
 app.get('/content/download/:contentid/:itemid', content.download);
-app.post('/content/vote/:contentid', content.vote);
+app.post('/content/vote/:contentid', function(req, res) {
+    account.authenticate(req, res, content.vote);
+});
 
 app.get('/comments/data/:type/:contentid/:contentid2', content.getcomment);
-app.post('/comments/add', content.addcomment);
-app.post('/comments/vote/:commentid', comments.vote);
+app.post('/comments/add', function(req, res) {
+    account.authenticate(req, res, content.addcomment);
+});
+app.post('/comments/vote/:commentid', function(req, res) {
+    account.authenticate(req, res, comment.vote);
+});
 
-app.post ('/images/upload', images.upload);
-app.get('/images/:imageid', images.get);
+app.post ('/images/upload', image.upload);
+app.get('/images/:imageid', image.get);
 
 /* the following is restful, try to make the service out of the ocs standard */
 /* TODO: change to 
@@ -70,13 +118,25 @@ app.get('/images/:imageid', images.get);
  *  fan.localhost/:urlmd5/fans
  *  fan.localhost/:personid/follow
  */
-app.get('/:urlmd5/fanstatus', fan.status);
-app.post('/:urlmd5/fanstatus', fan.add);
-app.delete('/:urlmd5/fanstatus', fan.remove);
-app.get('/:urlmd5/fans', fan.get);
+app.get('/:urlmd5/fanstatus', function(req, res) {
+    account.authenticate(req, res, fan.status);
+});
+app.post('/:urlmd5/fanstatus', function(req, res) {
+    account.authenticate(req, res, fan.add);
+});
+app.delete('/:urlmd5/fanstatus', function(req, res) {
+    account.authenticate(req, res, fan.remove);
+});
+app.get('/:urlmd5/fans', function(req, res) {
+    account.authenticate(req, res, fan.get);
+});
 //app.get('/:personid/follow', fan.follow);
-app.post('/:urlmd5/vote', vote.vote);
+app.post('/:urlmd5/vote', function(req, res) {
+    account.authenticate(req, res, vote.vote);
+});
 
-app.post('/:urlmd5/comment', comments.add);
-app.get('/:urlmd5/comment', comments.get);
+app.post('/:urlmd5/comment', function(req, res) {
+    account.authenticate(req, res, comment.add);
+});
+app.get('/:urlmd5/comment', comment.get);
 

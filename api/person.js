@@ -1,5 +1,5 @@
-var account = require('./account');
 var utils = require('./utils');
+var account = require('./account');
 var express = require('express');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -73,25 +73,18 @@ exports.check = function(req, res) {
 
 exports.getself = function(req, res) {
     var personid = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(personid, password, function(r, msg) {
-        if (r) {
-            personModel.findOne({'personid': personid}, function(err, doc) {
-                if (err) {
-                    console.log(err);
-                    return utils.message(req, res, "Server error");
-                } else if (doc) {
-                    var meta = {"status":"ok", "statuscode":100};
-                    var data = new Array();
-                    data[0] = {"person": doc};
-                    var result = {"ocs": {"meta": meta, "data": data}};
-                    return utils.info(req, res, result);
-                } else {
-                    return utils.message(req, res, "Server error: cannot find the person.");
-                }
-            });
+    personModel.findOne({'personid': personid}, function(err, doc) {
+        if (err) {
+            console.log(err);
+            return utils.message(req, res, "Server error");
+        } else if (doc) {
+            var meta = {"status":"ok", "statuscode":100};
+            var data = new Array();
+            data[0] = {"person": doc};
+            var result = {"ocs": {"meta": meta, "data": data}};
+            return utils.info(req, res, result);
         } else {
-            return utils.message(req, res, msg);
+            return utils.message(req, res, "Server error: cannot find the person.");
         }
     });
 };
@@ -106,32 +99,25 @@ exports.edit = function(req, res) {
         }
 
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if (r) {
-            var info = {};
-            if (req.body.latitude) {
-                info.latitude = req.body.latitude;
-            }
-            if (req.body.longtitude) {
-                info.longtitude = req.body.longtitude;
-            }
-            if (req.body.city) {
-                info.city = req.body.city;
-            }
-            if (req.body.country) {
-                info.country = req.body.country;
-            }
+    var info = {};
+    if (req.body.latitude) {
+        info.latitude = req.body.latitude;
+    }
+    if (req.body.longtitude) {
+        info.longtitude = req.body.longtitude;
+    }
+    if (req.body.city) {
+        info.city = req.body.city;
+    }
+    if (req.body.country) {
+        info.country = req.body.country;
+    }
 
-            personModel.update({"personid":login}, info, function(err) {
-                if (err) {
-                    utils.message(req, res, "Server error");
-                } else {
-                    utils.message(req, res, "ok");
-                }
-            });
+    personModel.update({"personid":login}, info, function(err) {
+        if (err) {
+            utils.message(req, res, "Server error");
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "ok");
         }
     });
 };
@@ -237,31 +223,24 @@ exports.remove = function(req, res) {
 
 exports.get = function(req, res) {
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if (r) {
-            personModel.findOne({"personid": req.params.personid}, function(err, doc) {
-                if (err) {
-                    utils.message(req, res, "Server error");
-                    console.log(err);
-                } else if (doc) {
-                    //TODO: is private
-                    var meta = {"status":"ok", "statuscode":100};
-                    var data = new Array();
-                    data [0] = {"person": doc};
-                    var result = {"ocs": {"meta": meta, "data": data}};
-                    utils.info(req, res, result);
-                } else {
-                    utils.message(req, res, "person not found");
-                }
-            });
+    personModel.findOne({"personid": req.params.personid}, function(err, doc) {
+        if (err) {
+            utils.message(req, res, "Server error");
+            console.log(err);
+        } else if (doc) {
+            //TODO: is private
+            var meta = {"status":"ok", "statuscode":100};
+            var data = new Array();
+            data [0] = {"person": doc};
+            var result = {"ocs": {"meta": meta, "data": data}};
+            utils.info(req, res, result);
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "person not found");
         }
     });
 };
 
-function search_account(req, res) {
+exports.search = function(req, res) {
     var page = 0;
     var pagesize = 10;
 
@@ -310,42 +289,23 @@ function search_account(req, res) {
     });
 };
 
-exports.search = function(req, res) {
-    var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if (r) {
-            search_account(req, res);
-        } else {
-            utils.message(req, res, msg);
-        }
-    });
-};
-
 exports.get_balance = function(req, res) {
     var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if (r) {
-            personModel.findOne({"personid":login}, function(err, doc) {
-                if (err) {
-                    utils.message(req, res, "Server error");
-                } else if (doc) {
-                    var data = new Array();
-                    /*TODO: default currency*/
-                    data[0] = {"person": {"currency": doc.currency, 
-                                        "balance": doc.balance}};
-                    var meta = {"status": "ok", "statuscode": 100};
-                    var result = {"ocs": {"meta": meta, "data": data}};
-                    utils.info(req, res, result);
-                } else {
-                    var meta = {"status": "ok", "statuscode": 100};
-                    var result = {"ocs": {"meta": meta}};
-                    utils.info(req, res, result);
-                }
-            });
+    personModel.findOne({"personid":login}, function(err, doc) {
+        if (err) {
+            utils.message(req, res, "Server error");
+        } else if (doc) {
+            var data = new Array();
+            /*TODO: default currency*/
+            data[0] = {"person": {"currency": doc.currency, 
+                                "balance": doc.balance}};
+            var meta = {"status": "ok", "statuscode": 100};
+            var result = {"ocs": {"meta": meta, "data": data}};
+            utils.info(req, res, result);
         } else {
-            utils.message(req, res, msg);
+            var meta = {"status": "ok", "statuscode": 100};
+            var result = {"ocs": {"meta": meta}};
+            utils.info(req, res, result);
         }
     });
 };

@@ -1,6 +1,5 @@
 var utils = require('./utils');
 var content = require('./content');
-var account = require('./account');
 var vote = require('./vote');
 var express = require('express');
 var mongoose = require('mongoose');
@@ -77,17 +76,10 @@ exports.addcomment = function(req, url, callback) {
 };
 
 exports.add = function(req, res) {
-    var login = utils.get_username(req);
-    var password = utils.get_password(req);
-    account.auth(login, password, function(r, msg) {
-        if(r) {
-            var url = req.params.urlmd5;
-            exports.addcomment(req, url, function(r, msg){
-                if (r)
-                    utils.message(req, res, "ok");
-                else
-                    utils.message(req, res, msg);
-            });
+    var url = req.params.urlmd5;
+    exports.addcomment(req, url, function(r, msg){
+        if (r) {
+            utils.message(req, res, "ok");
         } else {
             utils.message(req, res, msg);
         }
