@@ -98,7 +98,8 @@ function generate_children(regex, callback){
             var data = new Array();
             var cache = new Array();
             cache[0] = result.ocs.data;
-            for (var i = 0; docs[i]; i++) {
+            var len = docs?docs.length:0;
+            for (var i = 0; i<len; i++) {
                 data[i] = {"id": docs[i]._id,
                             "subject": docs[i].subject,
                             "text" : docs[i].message,
@@ -133,11 +134,12 @@ exports.getcomment = function(req, url, callback) {
             console.log(err);
             return callback(null, "Server error");
         } else {
-            if (!docs.length) {
+            if (!docs) {
                 return callback(null, "ok");
             } else {
                 var regex = "";
-                for (var i = 0; docs[i]; i++) {
+                var len = docs.length;
+                for (var i = 0; i<len; i++) {
                     if (i != 0)
                         regex += "|";
                     regex += "^"+docs[i].path;

@@ -88,7 +88,7 @@ exports.list = function(req, res){
         } else {
             var meta = {"status":"ok", "statuscode": 100};
             var data = new Array();
-            var len = docs[i].length;
+            var len = docs ? docs.length:0;
             for (var i = 0; i < len; i++) {
                 data[i] = {"message": docs[i]};
             }

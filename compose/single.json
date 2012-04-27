@@ -1,0 +1,1 @@
+{"repo":"http://example.repo.opensuse.org","applications":[{"id":"linguist4.desktop","pkgname":"libqt4-devel-4.7.3-8.1.i586.rpm","name":"Qt 4 Linguist","icon":"linguist","appcategories":["Qt","Development","Translation","Qt"],"mimetypes":["application/x-linguist"]}]}

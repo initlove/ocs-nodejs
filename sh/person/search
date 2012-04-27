@@ -1,1 +1,0 @@
-curl http://test001:test001password@localhost:3000/person/data?name=test&page=0&pagesize=10

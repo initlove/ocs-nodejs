@@ -1,1 +1,0 @@
-curl http://test001:test001password@localhost:3000/fan/data/4f841961be3ecca328000058?format=json

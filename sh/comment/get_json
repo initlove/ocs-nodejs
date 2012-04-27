@@ -1,1 +1,0 @@
-curl http://localhost:3000/comments/data/1/4f841961be3ecca328000058/0?format=json

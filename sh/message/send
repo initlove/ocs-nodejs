@@ -1,1 +1,0 @@
-curl --data "to=test002&subject=hello&message=world" http://test001:test001password@localhost:3000/message

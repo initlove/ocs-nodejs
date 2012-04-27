@@ -1,1 +1,8 @@
 test script for the services!
+
+1. in compose: push.js to init the contents
+2. person_add person_add1 to init the users.
+3. edit the services.js, change the contentid and comment id
+
+ocs> help -- list all the support services
+ocs> content_get -- get the demo content infos

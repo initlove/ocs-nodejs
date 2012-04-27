@@ -1,1 +1,0 @@
-curl --data "" http://test002:test002password@localhost:3000/fan/add/4f8be6bf274e3ed42300029d

@@ -28,7 +28,7 @@ var friendSchema = new Schema({
 mongoose.connect('mongodb://localhost/test');
 var friendModel = mongoose.model('friend', friendSchema);
 var friendDetailModel = mongoose.model('friend_detail', friendDetailSchema);
-var inviteModel = mongoose.model('invite', friendDetailSchema);
+var inviteModel = mongoose.model('invite', inviteSchema);
 
 exports.status = function(req, res) {
     var from = utils.get_username(req);
@@ -59,9 +59,7 @@ exports.get = function(req, res) {
             console.log(err);
             utils.message(req, res, "Server error");
         } else {
-            var count = 0;
-            if (doc)
-                count = doc.friends.length;
+            var count = doc? doc.friends.length: 0;
             var meta = {"status": "ok", "statuscode": 100,
                         "totalitems": count, "itemsperpage": pagesize};
             var data = new Array();
@@ -75,7 +73,7 @@ exports.get = function(req, res) {
     });
 };
 
-function get_send_rece(req, res, key1, key2) {
+exports.rece = function (req, res) {
     var page = 0;
     var pagesize = 10;
 
@@ -85,13 +83,13 @@ function get_send_rece(req, res, key1, key2) {
         pagesize = parseInt(req.query.pagesize);
 
     var personid = utils.get_username(req);
-    inviteModel.count({key1: personid}, function(err, count) {
+    inviteModel.count({receiver: personid}, function(err, count) {
         if (err) {
             console.log(err);
             utils.message(req, res, "Server error");
         } else {
             if (count > page*pagesize) {
-                inviteModel.find({key1: personid}).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
+                inviteModel.find({receiver: personid}).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
                     if (err) {
                         console.log(err);
                         utils.message(req, res, "Server error");
@@ -99,11 +97,9 @@ function get_send_rece(req, res, key1, key2) {
                         var meta = {"status":"ok", "statuscode":100,
                                     "totalitems": count, "itemsperpage": pagesize};
                         var data = new Array();
-                        var len = docs.length;
+                        var len = docs? docs.length:0;
                         for(var i = 0; i < len; i++) {
-                            data [i] = {"user": {"personid": docs[i][key2], 
-                                        "message": docs[i].message,
-                                        "timestamp": docs[i].timestamp}};
+                            data [i] = {"user": docs[i]};
                         }
                         var result = {"ocs": {"meta": meta, "data": data}};
                         utils.info(req, res, result);
@@ -119,12 +115,46 @@ function get_send_rece(req, res, key1, key2) {
     });
 };
 
-exports.rece = function (req, res) {
-    get_send_rece(req, res, "receiver", "sender");
-};
-
 exports.sent = function (req, res) {
-    get_send_rece(req, res, "sender", "receiver");
+    var page = 0;
+    var pagesize = 10;
+
+    if(req.query.page)
+        page = parseInt(req.query.page);
+    if(req.query.pagesize)
+        pagesize = parseInt(req.query.pagesize);
+
+    var personid = utils.get_username(req);
+    inviteModel.count({sender: personid}, function(err, count) {
+        if (err) {
+            console.log(err);
+            utils.message(req, res, "Server error");
+        } else {
+            if (count > page*pagesize) {
+                inviteModel.find({sender: personid}).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
+                    if (err) {
+                        console.log(err);
+                        utils.message(req, res, "Server error");
+                    } else {
+                        var meta = {"status":"ok", "statuscode":100,
+                                    "totalitems": count, "itemsperpage": pagesize};
+                        var data = new Array();
+                        var len = docs? docs.length:0;
+                        for(var i = 0; i < len; i++) {
+                            data [i] = {"user": docs[i]};
+                        }
+                        var result = {"ocs": {"meta": meta, "data": data}};
+                        utils.info(req, res, result);
+                    }
+                });
+            } else {
+                var meta = {"status":"ok", "statuscode":100,
+                            "totalitems": count, "itemsperpage": pagesize};
+                var result = {"ocs": {"meta": meta}};
+                utils.info(req, res, result);
+            }
+        }
+    });
 };
 
 function real_invite(req, res) {
@@ -187,7 +217,7 @@ function add_friend(I, you, callback) {
             } else {
                 var len = doc.friends.length;
                 for (var i = 0; i < len; i++) {
-                    if (doc[i].personid == you) {
+                    if (doc.friends[i].personid == you) {
                         return callback(false, "You have already been the friends");
                     }
                 }
@@ -200,19 +230,19 @@ function add_friend(I, you, callback) {
                     console.log(err);
                     return callback(false, "Server error");
                 } else {
-                    callback(true);
+                    return callback(true);
                 }
             });
         }
-    }
+    });
 };
 
 /*TODO: should we approve by the id, not the personid ? */
 exports.approve = function(req, res) {
     var I = utils.get_username(req);
     var you = req.params.personid;
-
-    inviteModel.findOne({sender:you, receiver: I, status: 'new'}, function(err, doc) {
+    var query = {sender: you, receiver: I, status: 'new'};
+    inviteModel.findOne(query, function(err, doc) {
         if (err) {
             console.log(err);
             utils.message(req, res, "Server error");
@@ -220,19 +250,23 @@ exports.approve = function(req, res) {
             add_friend(I, you, function(r, msg){
                 if (r) {
                     add_friend(you, I, function(r, msg) {
-                        if (r)
-                            utils.message(req, res, "ok");
-                        else {
-                            //TODO: roll back
-                            doc.status = 'approved';
-                            doc.save(function(err) {
+                        if (r) {
+                            inviteModel.update(query, {$set: {status: 'approve'}}, function(err) {
                                 if (err) {
                                     console.log(err);
                                     utils.message(req, res, "Server error");
                                 } else {
-                                    utils.message(req, res, msg);
+                                    utils.message(req, res, "ok");
                                 }
                             });
+                            /* VIP! very trick, when we set _id: select = false, we cannot use the doc.save */
+                            /*
+                            doc.status = 'approved';
+                            doc.save(function(err) {
+                            }); */
+                        } else {
+                            //TODO: roll back
+                            utils.message(req, res, msg);
                         }
                     });
                 } else {
@@ -248,14 +282,13 @@ exports.approve = function(req, res) {
 exports.decline = function(req, res) {
     var I = utils.get_username(req);
     var you = req.params.personid;
-
-    inviteModel.findOne({sender:you, receiver: I, status: 'new'}, function(err, doc) {
+    var query = {sender: you, receiver: I, status: 'new'};
+    inviteModel.findOne(query, function(err, doc) {
         if (err) {
             console.log(err);
             utils.message(req, res, "Server error");
-        } else {
-            doc.status = 'decline';
-            doc.save(function(err) {
+        } else if (doc) {
+            inviteModel.update(query, {$set: {status: 'decline'}}, function(err) {
                 if (err) {
                     console.log(err);
                     utils.message(req, res, "Server error");
@@ -263,22 +296,36 @@ exports.decline = function(req, res) {
                     utils.message(req, res, "ok");
                 }
             });
+            /* we set id select = false, we cannot use save way ..
+            doc.status = 'decline';
+            doc.save(function(err) {
+            }); */
+        } else {
+            utils.message(req, res, "No invitation from this person");
         }
     });
 };
 
-function remove_friend(I, you) {
+function remove_friend(I, you, callback) {
     friendModel.findOne({personid:I}, function(err, doc) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            return callback(false, "Server error");
         } else {
             if (doc) {
                 var len = doc.friends.length;
                 for (var i = 0; i < len; i++) {
                     if (doc.friends[i].personid == you) {
                         doc.friends.splice (i, 1);
-                        return callback(true);
+                        doc.save(function(err) {
+                            if (err) {
+                                console.log(err);
+                                return callback(false, "Server error");
+                            } else {
+                                return callback(true);
+                            }
+                        });
+                        return;
                     }
                 }
             }

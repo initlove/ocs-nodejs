@@ -9,9 +9,5 @@ ocs-nodejs
 |--test		--  demo server, can split to several servers(js) for testing
 |		 	for example, comment.js, content..
 |		    curl_command, the way to test the server.
+                fuzzy script, to learn nodejs or js
 |--third-party  --  mongodb for linux32, because it's very slow to download it from the server
-
-POST:
- curl --data "name=dliang&homepage=initlove" http://localhost:3000/comment/search?test
-GET:
- curl http://localhost:3000/user/dliang

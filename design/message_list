@@ -1,0 +1,31 @@
+list
+
+Gets the list of messages. the messages are sorted in chronological order. Only authenticated users are allowed to access this method. Authentication is done by sending a Basic HTTP Authorisation header.
+
+    Syntax: /v1/message/"folder"
+    HTTP method: GET
+    Arguments: folder - The ID of the folder you want to get. Use the folders method to get the list of folders.
+    URL Arguments: status - Show only messages with the specified status. Possible values are: 0-unread, 1-read, 2-replyed
+    URL Arguments: page - The content page. The amount of entries can be controlled by the pagesize argument. The first page is 0, the second is 1, ...
+    URL Arguments: pagesize - The amount of entries per page.
+    Result: messagelist xml
+        Status: 0 - unread
+        Status: 1 - read
+        Status: 2 - answered 
+    Statuscodes:
+        100 - successfull 
+
+
+rewrite it. I think we need not have the 'folder' concept.
+
+status - read, unread, answered (read: answered included)
+
+New arguments:  
+    with -  get the messages bettween login user with someone
+    search - the content of the query 
+
+/message?search="vip"&with=someoneelse&page=0&pagesize=10&status=read
+
+trick usage:
+    with=loginuser: get the messages you sent and received
+

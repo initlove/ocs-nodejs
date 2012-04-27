@@ -1,1 +1,0 @@
-curl http://localhost:3000/content/download/4f841961be3ecca328000058/0?format=json

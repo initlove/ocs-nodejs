@@ -3,6 +3,7 @@
  */
 
 var config = require('./config');
+var friend = require('./friend');
 var fan = require('./fan');
 var vote = require('./vote');
 var account = require('./account');
@@ -68,6 +69,12 @@ app.get('/friend/sentinvitations', function(req, res) {
 app.post('/friend/invite/:personid', function(req, res) {
     account.authenticate(req, res, friend.invite);
 });
+app.post('/friend/approve/:personid', function(req, res) {
+    account.authenticate(req, res, friend.approve);
+});
+app.post('/friend/decline/:personid', function(req, res) {
+    account.authenticate(req, res, friend.decline);
+});
 app.post('/friend/cancel/:personid', function(req, res) {
     account.authenticate(req, res, friend.cancel);
 });
@@ -108,6 +115,8 @@ app.post('/comments/add', function(req, res) {
 app.post('/comments/vote/:commentid', function(req, res) {
     account.authenticate(req, res, comment.vote);
 });
+
+//the following were not tested yet 
 
 app.post ('/images/upload', image.upload);
 app.get('/images/:imageid', image.get);

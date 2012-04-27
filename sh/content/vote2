@@ -1,1 +1,0 @@
-curl --data "vote=40"  http://test002:test002password@localhost:3000/content/vote/4f8be6bf274e3ed423000243

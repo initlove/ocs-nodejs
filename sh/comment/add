@@ -1,1 +1,0 @@
-curl --data "type=1&content=4f8be6bf274e3ed423000042&content2=0&parent=0&subject=sp22&message=cp22" http://test001:test001password@localhost:3000/comments/add

@@ -34,9 +34,7 @@ exports.getfans = function(req, url, callback) {
             console.log(err);
             return callback(null, "Server error");
         } else {
-            var count = 0;
-            if (doc)
-                count = doc.fan.length;
+            var count = doc?doc.fan.length:0;
             var meta = {"status": "ok", "statuscode": 100,
                         "totalitems": count, "itemsperpage": pagesize};
             var data = new Array();
@@ -63,7 +61,7 @@ exports.get = function(req, res) {
 
 exports.fanstatus = function(req, url, callback) {
     var login = utils.get_username(req);
-    fanModel.findOne({url: url, fan: login}, function(err, doc) {
+    fanModel.findOne({url: url, 'fan.personid': login}, function(err, doc) {
         if(err) {
             console.log(err);
             return callback(null, "Server error");
@@ -136,9 +134,8 @@ exports.removefan = function(req, url, callback) {
             console.log(err);
             return callback(false, "Server error");
         } else {
-            console.log(doc);
             var login = utils.get_username(req);
-            var len = doc.fan.length;
+            var len = doc?doc.fan.length:0;
             for (var i=0; i < len; i++) {
                 if (doc.fan[i].personid == login) {
                     doc.fan.splice (i, 1);
@@ -150,6 +147,7 @@ exports.removefan = function(req, url, callback) {
                             return callback(true);
                         }
                     });
+                    return;
                 }
             }
             return callback(false, "You are not the fan");

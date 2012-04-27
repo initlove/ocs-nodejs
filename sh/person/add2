@@ -1,1 +1,0 @@
-curl --data "login=test002&password=test002password&firstname=test002firstname&lastname=test002lastname&email=test002email@test.com"  http://localhost:3000/person/add

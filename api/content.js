@@ -31,7 +31,7 @@ var categorySchema = new Schema({
 
 var contentSchema = new Schema({
     name: {type: String, required: true}
-    ,type: {type: String, required: true}
+    ,type: String
     ,typeid: String
     ,typename: String
     ,language: String
@@ -383,6 +383,7 @@ exports.addfan = function(req, res) {
                     doc.fans+=1;
                     doc.save(function(err) {
                         if (err) {
+                            console.log(err);
                             utils.message(req, res, "Server error");
                         } else
                             utils.message(req, res, "ok");
@@ -410,6 +411,7 @@ exports.removefan = function(req, res) {
                     doc.fans -= 1;
                     doc.save(function(err) {
                         if (err) {
+                            console.log(err);
                             utils.message(req, res, "Server error");
                         } else
                             utils.message(req, res, "ok");
