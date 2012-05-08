@@ -1,3 +1,10 @@
+VIP:  api-ocs.rhcloud.com
+deploy the app there, and test there
+also I found some bugs while deploying it.
+So, wait utils 5.10,
+this is the time to make a release!
+
+
 ocs implement on nodejs.
 
 ocs-nodejs 
