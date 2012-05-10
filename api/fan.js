@@ -16,7 +16,7 @@ var fanSchema = new Schema({
     ,fan: {type:[fanDetailSchema], default:[]}
 });
 
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var fanModel = mongoose.model('fan', fanSchema);
 var fanDetailModel = mongoose.model('fan_detail', fanDetailSchema);
 
@@ -32,7 +32,7 @@ exports.getfans = function(req, url, callback) {
     fanModel.findOne({url:url}, function(err, doc) {
         if(err) {
             console.log(err);
-            return callback(null, "Server error");
+            return callback(null, "Server error "+err);
         } else {
             var count = doc?doc.fan.length:0;
             var meta = {"status": "ok", "statuscode": 100,
@@ -64,7 +64,7 @@ exports.fanstatus = function(req, url, callback) {
     fanModel.findOne({url: url, 'fan.personid': login}, function(err, doc) {
         if(err) {
             console.log(err);
-            return callback(null, "Server error");
+            return callback(null, "Server error "+err);
         } else {
             var meta = {"status": "ok", "statuscode": 100};
             var result = {"ocs": {"meta": meta, "data": {"status": doc?"fan":"notfan"}}};
@@ -88,7 +88,7 @@ exports.addfan = function(req, url, callback) {
     fanModel.findOne({url: url}, function(err, doc) {
         if(err) {
             console.log(err);
-            return callback(false, "Server error");
+            return callback(false, "Server error "+err);
         } else {
             var login = utils.get_username(req);
             if(doc) {
@@ -107,7 +107,7 @@ exports.addfan = function(req, url, callback) {
             doc.save(function(err) {
                 if (err) {
                     console.log(err);
-                    return callback(false, "Server error");
+                    return callback(false, "Server error "+err);
                 } else {
                     return callback(true);
                 }
@@ -132,7 +132,7 @@ exports.removefan = function(req, url, callback) {
     fanModel.findOne({url: url}, function(err, doc) {
         if(err) {
             console.log(err);
-            return callback(false, "Server error");
+            return callback(false, "Server error "+err);
         } else {
             var login = utils.get_username(req);
             var len = doc?doc.fan.length:0;
@@ -142,7 +142,7 @@ exports.removefan = function(req, url, callback) {
                     doc.save(function(err) {
                         if(err) {
                             console.log(err);
-                            return callback(false, "Server error");
+                            return callback(false, "Server error "+err);
                         } else {
                             return callback(true);
                         }

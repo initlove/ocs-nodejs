@@ -1,5 +1,4 @@
 var utils = require('./utils');
-var account = require('./account');
 var express = require('express');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -15,6 +14,7 @@ var attributeSchema = new Schema({
 var personSchema = new Schema({
     _id: {type: ObjectId, select: false}
     ,personid: {type: String, required: true, unique: true}
+    ,password: {type: String, required: true}
     ,firstname: {type: String, required: true}
     ,lastname: {type: String, required: true}
     ,email: {type: String, required: true}
@@ -30,13 +30,13 @@ var personSchema = new Schema({
     ,balance: {type: Number, default: 0}
 });
 
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var personModel = mongoose.model('person', personSchema);
 
 exports.valid = function(personid, callback) {
     personModel.findOne({'personid': personid}, function(err, doc) {
         if (err) {
-            return callback(false, "Server error");
+            return callback(false, "Server error: " + err);
         } else if (doc) {
             return callback(true);
         } else {
@@ -45,28 +45,40 @@ exports.valid = function(personid, callback) {
     });
 };
 
+exports.auth = function(req, res, callback) {
+    var personid = utils.get_username(req);
+    var password = utils.get_password(req);
+    if (!personid || !password) {
+        return utils.message(req, res, "fail to auth");
+    }
+    /*TODO bcrypt */
+    /*TODO lock down if checked over 5 times in minitues from one ip */
+    personModel.findOne({'personid': personid, 'password': password}, function(err, doc) {
+        if (err) {
+            return utils.message(req, res, "Server error: "+err);
+        } else if (doc) {
+            return callback(req, res);
+        } else {
+            return utils.message(req, res, "fail to auth");
+        }
+    });
+};
+
 exports.check = function(req, res) {
     if (!req.body.login || !req.body.password) {
         return utils.message(req, res, "please specify all mandatory fields");
     }
-
-    personModel.findOne({'personid': req.body.login}, function(err, doc) {
+    personModel.findOne({'personid': req.body.login, 'password': req.body.password}, function(err, doc) {
         if (err) {
-            return utils.message(req, res, "Server error");
+            return utils.message(req, res, "Server error: "+err);
         } else if (doc) {
-            account.auth(req.body.login, req.body.password, function(r, msg) {
-                if (r) {
-                    var meta = {"status": "ok", "statuscode": 100};
-                    var data = new Array();
-                    data [0] = {"person": {"personid": req.body.login}};
-                    var result = {"ocs": {"meta": meta, "data": data}};
-                    return utils.info(req, res, result);
-                } else {
-                    return utils.message(req, res, msg);
-                }
-            });
+            var meta = {"status": "ok", "statuscode": 100};
+            var data = new Array();
+            data [0] = {"person": {"personid": req.body.login}};
+            var result = {"ocs": {"meta": meta, "data": data}};
+            return utils.info(req, res, result);
         } else {
-            return utils.message(req, res, "login not valid");
+            return utils.message(req, res, "fail to auth");
         }
     });
 };
@@ -76,7 +88,7 @@ exports.getself = function(req, res) {
     personModel.findOne({'personid': personid}, function(err, doc) {
         if (err) {
             console.log(err);
-            return utils.message(req, res, "Server error");
+            return utils.message(req, res, "Server error "+err);
         } else if (doc) {
             var meta = {"status":"ok", "statuscode":100};
             var data = new Array();
@@ -115,7 +127,7 @@ exports.edit = function(req, res) {
 
     personModel.update({"personid":login}, info, function(err) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             utils.message(req, res, "ok");
         }
@@ -159,35 +171,31 @@ exports.add = function(req, res) {
 
     personModel.findOne({"personid":login}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
             console.log(err);
         } else if (doc) {
             utils.message(req, res, "login already exists");
         } else {
             personModel.findOne({"email":email}, function(err, doc) {
                 if (err) {
-                    utils.message(req, res, "Server error");
+                    utils.message(req, res, "Server error "+err);
                     console.log(err);
                 } else if (doc) {
                     utils.message(req, res, "email already taken");
                 } else {
-                    account.add(login, password, function(r, msg) {
-                        if (r) {
-                            var person = new personModel();
-                            person.personid = login;
-                            person.firstname = firstname;
-                            person.lastname = lastname;
-                            person.email = email;
-                            person.save(function(err) {
-                                if (err) {
-                                    utils.message(req, res, "Server error");
-                                    console.log(err);
-                                } else {
-                                    utils.message(req, res, "ok");
-                                }
-                            });
+                    var person = new personModel();
+                    person.personid = login;
+                    /* TODO: bcrypt */    
+                    person.password = password;
+                    person.firstname = firstname;
+                    person.lastname = lastname;
+                    person.email = email;
+                    person.save(function(err) {
+                        if (err) {
+                            utils.message(req, res, "Server error "+err);
+                            console.log(err);
                         } else {
-                            utils.message(req, res, msg);
+                            utils.message(req, res, "ok");
                         }
                     });
                 }
@@ -204,19 +212,12 @@ exports.remove = function(req, res) {
         utils.message(req, res, "please specify all mandatory fields ");
         return;
     }
-
-    account.remove(login, password, function(r, msg) {
-        if (r) {
-            personModel.remove({"personid" : login}, function(err) {
-                if (err) {
-                    utils.message(req, res, "Server error");
-                    console.log(err);
-                } else {
-                    utils.message(req, res, "ok");
-                }
-            });
+    personModel.remove({"personid" : login}, function(err) {
+        if (err) {
+            utils.message(req, res, "Server error "+err);
+            console.log(err);
         } else {
-            utils.message(req, res, msg);
+            utils.message(req, res, "ok");
         }
     });
 };
@@ -225,7 +226,7 @@ exports.get = function(req, res) {
     var login = utils.get_username(req);
     personModel.findOne({"personid": req.params.personid}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
             console.log(err);
         } else if (doc) {
             //TODO: is private
@@ -260,13 +261,13 @@ exports.search = function(req, res) {
 
     personModel.count(query, function(err, count) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
             console.log(err);
         } else {
             if (count > page*pagesize) {
                 personModel.find(query).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
                     if (err) {
-                        utils.message(req, res, "Server error");
+                        utils.message(req, res, "Server error "+err);
                         console.log(err);
                     } else {
                         var meta = {"status":"ok", "statuscode":100,
@@ -293,7 +294,7 @@ exports.get_balance = function(req, res) {
     var login = utils.get_username(req);
     personModel.findOne({"personid":login}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else if (doc) {
             var data = new Array();
             /*TODO: default currency*/
@@ -309,4 +310,3 @@ exports.get_balance = function(req, res) {
         }
     });
 };
-

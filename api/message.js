@@ -15,7 +15,7 @@ var messageSchema = new Schema({
     ,status: {type: String, default: "unread"}
 });
 
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var messageModel = mongoose.model('message', messageSchema);
 
 exports.send = function(req, res){
@@ -44,7 +44,7 @@ exports.send = function(req, res){
             message.body = req.body.message;
             message.save(function(err) {
                 if(err)
-                    utils.message(req, res, "Server error");
+                    utils.message(req, res, "Server error "+err);
                 else
                     utils.message(req, res, "ok");
             });
@@ -84,7 +84,7 @@ exports.list = function(req, res){
 
     messageModel.find(query).skip(page*pagesize).limit(pagesize).exec(function(err,docs) {
         if(err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             var meta = {"status":"ok", "statuscode": 100};
             var data = new Array();

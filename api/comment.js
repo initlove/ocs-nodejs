@@ -1,5 +1,4 @@
 var utils = require('./utils');
-var content = require('./content');
 var vote = require('./vote');
 var express = require('express');
 var mongoose = require('mongoose');
@@ -7,6 +6,7 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var commentSchema = new Schema({
+    /* also mean parent */
     url: {type:String, required: true}
     ,childcount: {type:Number, default: 0}
     ,subject: {type:String, required: true}
@@ -30,7 +30,7 @@ commentSchema.path('guestemail').validate(function(v){
 });
 */
 
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var commentModel = mongoose.model('comments', commentSchema);
 
 function error_msg(err) {
@@ -52,10 +52,10 @@ exports.addcomment = function(req, url, callback) {
     comment.user = utils.get_username(req);
     commentModel.findOne({_id:url}, function(err, doc) {
         /* err may mean the id is the url from outside */
-        if (doc) {
-            comment.path = doc.path + ":" + comment._id;
-        } else {
+        if (err || !doc) {
             comment.path = comment._id;
+        } else {
+            comment.path = doc.path + ":" + comment._id;
         }
         comment.save(function(err) {
             if (err) {
@@ -90,7 +90,7 @@ function generate_children(regex, callback){
     commentModel.find({path: new RegExp(regex)}).asc("path").exec(function(err, docs) {
         if (err) {
             console.log(err);
-            return callback(null, "Server error");
+            return callback(null, "Server error "+err);
         } else {
 
             var meta = {"status":"ok", "statuscode":100};
@@ -101,6 +101,7 @@ function generate_children(regex, callback){
             var len = docs?docs.length:0;
             for (var i = 0; i<len; i++) {
                 data[i] = {"id": docs[i]._id,
+                            "url": docs[i].url,
                             "subject": docs[i].subject,
                             "text" : docs[i].message,
                             "childcount": docs[i].childcount,
@@ -132,9 +133,9 @@ exports.getcomment = function(req, url, callback) {
     commentModel.find(query).skip(page * pagesize).limit(pagesize).exec(function(err, docs) {
         if(err) {
             console.log(err);
-            return callback(null, "Server error");
+            return callback(null, "Server error "+err);
         } else {
-            if (!docs) {
+            if (!docs || (docs.length == 0)) {
                 return callback(null, "ok");
             } else {
                 var regex = "";
@@ -171,7 +172,7 @@ exports.vote = function(req, res) {
                     doc.score = score;
                     doc.save(function(err) {
                         if(err)
-                            utils.message(req, res, "Server error");
+                            utils.message(req, res, "Server error "+err);
                         else
                             utils.message(req, res, "ok");
                     });

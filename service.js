@@ -1,19 +1,18 @@
 var querystring = require('querystring');
 
-//var HOST = 'api-ocs.rhcloud.com';
-var HOST = 'localhost';
-var PORT = '8080';
+var HOST = 'api-ocs.rhcloud.com';
+var PORT = '80';
 
 var user1 = "testuser1";
 var password1 = "testpassword1";
 var auth1 = user1+":"+password1;
 
 var user2 = "testuser2";
-var password2 = "testuser2";
+var password2 = "testuser2";    /* leave for edit */
 var auth2 = user2+":"+password2;
 
-var content1 = "4f8be6bf274e3ed42300029d";
-var comment1 = "4f9a7668e19bd5531c00001b";
+var content1 = "4fab6b643f3584de46000009";
+var comment1 = "4fab6c1a3f3584de4600007a";
 
 var options = {
     config: {
@@ -71,7 +70,7 @@ var options = {
     }
     ,friend_decline: {
         option: {auth: auth2, path: '/friend/decline/'+user1, method: 'POST'}
-        ,data: {}
+        ,data: {}       /*remind me: if POST, and the data is empty, we should set it to {}, this is nodejs ... */
     }
     ,friend_cancel: {
         option: {auth: auth1, path: '/friend/cancel/'+user2, method: 'POST'}
@@ -93,17 +92,28 @@ var options = {
     }
     ,fan_add: {
         option: {auth: auth1, path: '/fan/add/'+content1, method: 'POST'}
+        ,data: {}
     }
     ,fan_remove: {
         option: {auth: auth1, path: '/fan/remove/'+content1, method: 'POST'}
+        ,data: {}
     }
     /*
     ,content_add: {
         option: {auth: auth1, path: '/content/add', method: 'POST'}
         ,data: {}
     }*/
+    /* test usage
+    ,content_pull: {
+        option: {path: '/content/push', method: 'POST'}
+        ,data: {}
+    }
+    ,content_push: {
+        option: {path: '/content/push', method: 'POST'}
+        ,data: {}
+    } */
     ,content_list: {
-        option: {path: '/content/data/?pagesize=1&search=edit', method: 'GET'}
+        option: {path: '/content/data/', method: 'GET'}
     }
     ,content_category: {
         option: {path: '/content/categories', method: 'GET'}

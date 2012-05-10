@@ -17,7 +17,7 @@ var voteSchema = new Schema({
     ,details: {type:[voteDetailSchema], default:[]}
 });
 
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var voteModel = mongoose.model('vote', voteSchema);
 var voteDetailModel = mongoose.model('vote_detail', voteDetailSchema);
 

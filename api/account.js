@@ -9,7 +9,7 @@ exports.authenticate = function (req, res, callback) {
     admindb.open(function(error, admindb) {
         admindb.authenticate(login, password, function(err, val) {
             if(err)
-                return callback(req, res, "fail to auth");
+                return utils.message(req, res, "fail to auth");
             else
                 return callback(req, res);
         });

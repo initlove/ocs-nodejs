@@ -1,3 +1,6 @@
+server.js: from openshift version
+todo: remove the account.js
+
 VIP:  api-ocs.rhcloud.com
 deploy the app there, and test there
 also I found some bugs while deploying it.

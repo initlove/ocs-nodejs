@@ -1,11 +1,9 @@
 var fs = require('fs');
-var GridStore = require('mongodb').GridStore;
-var express = require('express');
+var mime = require('mime');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
-var db = require('mongodb').Db;
-var server = require('mongodb').Server;
+var mongodb = require('mongodb');
 var GridStore = require('mongodb').GridStore;
 
 var downloadDetailSchema = new Schema ({
@@ -63,8 +61,9 @@ var contentSchema = new Schema({
     ,changed: Date
 });
 
-/*TODO: disconnect it ?  or keep it ? */
-mongoose.connect('mongodb://localhost/test');
+var dbname = "mongodb://admin:XP9jx78hpWkq@127.4.84.129:27017/api";
+mongoose.connect(dbname);
+
 var contentModel = mongoose.model('content', contentSchema);
 var categoryModel = mongoose.model('category', categorySchema);
 var downloadDetailModel = mongoose.model('download', downloadDetailSchema);
@@ -96,7 +95,7 @@ add_category = function (app) {
     }
  };
 
-add_app = function (repo, app) {
+add_app = function (req, res, repo, app) {
     var content = new contentModel();
     if (app.name)
         content.name = app.name;
@@ -129,16 +128,29 @@ add_app = function (repo, app) {
     content.download.push(downloadDetail);
     var uri = get_icon_uri (app.icon);
     if (uri) {
-        var client = new db('test', new server('127.0.0.1', 27017, {}));
-        client.open(function (err, connection) {
-            var gridStore = new GridStore(client, app.icon, 'w+');
+        mongodb.connect(dbname, function(err, connect) {
+            if (err)
+                return res.send("Server error "+err);
+/* In openshift, the content_type setting seems not work ! maybe nodejs version issuse? */
+            var gridStore = new GridStore(connect, app.icon, 'w+', {
+                                "content_type": mime.lookup(uri), 
+                                'metadata': {'contentType': mime.lookup(uri)}
+                            });
             gridStore.open(function (err, gridStore) {
+                if (err)
+                    return res.send("Server error "+err);
                 fs.readFile(uri, function (err, imageData) {
                     gridStore.write(imageData, function (err, gridStore) {
+                        if (err)
+                            return res.send("Server error "+err);
                         gridStore.close(function (err, result) {
-                            var icon_uri = "http://localhost:3000/images/" + result._id.toString();
+                            if (err)
+                                return res.send("Server error "+err);
+                            var icon_uri = "http://api-ocs.rhcloud.com/images/" + result._id.toString();
                             content.icon.push(icon_uri);
                             content.save (function (err) {
+                                if (err)
+                                    return res.send("Server error "+err);
                                 add_category (app);
                             });
                         });
@@ -153,14 +165,38 @@ add_app = function (repo, app) {
     }
 };
 
-fs.readFile('./appdata.json', function (err, data) {
-    if (err)
-        console.log ("error in load appdata.json\n");
-    if (data) {
-        var json = JSON.parse(data.toString('utf8'));
-        var len = json.applications.length;
-        for (var i = 0; i < len; i++)
-            add_app (json.repo, json.applications [i]);
-    }
-});
+exports.push = function(req, res) {
+    fs.readFile('./appdata.json', function (err, data) {
+        if (err) {
+            res.send("error in load appdata.json " + err);
+        } else {
+            if (data) {
+                var json = JSON.parse(data.toString('utf8'));
+                var len = json.applications.length;
+                for (var i = 0; i < len; i++)
+                    add_app (req, res, json.repo, json.applications [i]);
+            }
+        }
+    });
+};
 
+exports.pull = function(req, res) {
+    categoryModel.remove({}, function(err) {
+    });
+    contentModel.remove({}, function(err) {
+    });
+    mongodb.connect(dbname, function(err, connect) {
+        connect.collection("fs.files", function(err, coll) {
+            coll.drop(function(err, reply) {
+                if (reply)
+                    console.log(reply);
+            });
+        });
+        connect.collection("fs.chunks", function(err, coll) {
+            coll.drop(function(err, reply) {
+                if (reply)
+                    console.log(reply);
+            });
+        });
+    });
+};

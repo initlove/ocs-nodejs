@@ -25,7 +25,7 @@ var friendSchema = new Schema({
     ,friends: {type:[friendDetailSchema], default:[]}
 });
 
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var friendModel = mongoose.model('friend', friendSchema);
 var friendDetailModel = mongoose.model('friend_detail', friendDetailSchema);
 var inviteModel = mongoose.model('invite', inviteSchema);
@@ -35,7 +35,7 @@ exports.status = function(req, res) {
     var to = req.params.personid;
     friendModel.findOne({personid:from, friends:to}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             var meta = {"status": "ok", "statuscode": 100};
             var result = {"ocs": {"meta": meta, "data": {"status": doc?"friend":"notfriend"}}};
@@ -57,7 +57,7 @@ exports.get = function(req, res) {
     friendModel.findOne({personid:personid}, function(err, doc) {
         if(err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             var count = doc? doc.friends.length: 0;
             var meta = {"status": "ok", "statuscode": 100,
@@ -86,13 +86,13 @@ exports.rece = function (req, res) {
     inviteModel.count({receiver: personid}, function(err, count) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             if (count > page*pagesize) {
                 inviteModel.find({receiver: personid}).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
                     if (err) {
                         console.log(err);
-                        utils.message(req, res, "Server error");
+                        utils.message(req, res, "Server error "+err);
                     } else {
                         var meta = {"status":"ok", "statuscode":100,
                                     "totalitems": count, "itemsperpage": pagesize};
@@ -128,13 +128,13 @@ exports.sent = function (req, res) {
     inviteModel.count({sender: personid}, function(err, count) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             if (count > page*pagesize) {
                 inviteModel.find({sender: personid}).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
                     if (err) {
                         console.log(err);
-                        utils.message(req, res, "Server error");
+                        utils.message(req, res, "Server error "+err);
                     } else {
                         var meta = {"status":"ok", "statuscode":100,
                                     "totalitems": count, "itemsperpage": pagesize};
@@ -163,7 +163,7 @@ function real_invite(req, res) {
     friendModel.findOne({personid:sender, friends:receiver}, function(err, doc) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else {
             if (doc) {
                 return utils.message(req, res, "You have already been the friends");
@@ -175,7 +175,7 @@ function real_invite(req, res) {
                 invite.save(function(err) {
                     if (err) {
                         console.log(err);
-                        return utils.message(req, res, "Server error");
+                        return utils.message(req, res, "Server error "+err);
                     } else {
                         return utils.message(req, res, "ok");
                     }
@@ -209,7 +209,7 @@ function add_friend(I, you, callback) {
     friendModel.findOne({personid:I}, function (err, doc) {
         if (err) {
             console.log(err);
-            return callback(false, "Server error");
+            return callback(false, "Server error "+err);
         } else {
             if (!doc) {
                 doc = new friendModel();
@@ -228,7 +228,7 @@ function add_friend(I, you, callback) {
             doc.save(function(err) {
                 if (err) {
                     console.log(err);
-                    return callback(false, "Server error");
+                    return callback(false, "Server error "+err);
                 } else {
                     return callback(true);
                 }
@@ -245,7 +245,7 @@ exports.approve = function(req, res) {
     inviteModel.findOne(query, function(err, doc) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else if (doc) {
             add_friend(I, you, function(r, msg){
                 if (r) {
@@ -254,7 +254,7 @@ exports.approve = function(req, res) {
                             inviteModel.update(query, {$set: {status: 'approve'}}, function(err) {
                                 if (err) {
                                     console.log(err);
-                                    utils.message(req, res, "Server error");
+                                    utils.message(req, res, "Server error "+err);
                                 } else {
                                     utils.message(req, res, "ok");
                                 }
@@ -286,12 +286,12 @@ exports.decline = function(req, res) {
     inviteModel.findOne(query, function(err, doc) {
         if (err) {
             console.log(err);
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
         } else if (doc) {
             inviteModel.update(query, {$set: {status: 'decline'}}, function(err) {
                 if (err) {
                     console.log(err);
-                    utils.message(req, res, "Server error");
+                    utils.message(req, res, "Server error "+err);
                 } else {
                     utils.message(req, res, "ok");
                 }
@@ -310,7 +310,7 @@ function remove_friend(I, you, callback) {
     friendModel.findOne({personid:I}, function(err, doc) {
         if (err) {
             console.log(err);
-            return callback(false, "Server error");
+            return callback(false, "Server error "+err);
         } else {
             if (doc) {
                 var len = doc.friends.length;
@@ -320,7 +320,7 @@ function remove_friend(I, you, callback) {
                         doc.save(function(err) {
                             if (err) {
                                 console.log(err);
-                                return callback(false, "Server error");
+                                return callback(false, "Server error "+err);
                             } else {
                                 return callback(true);
                             }

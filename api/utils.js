@@ -1,6 +1,8 @@
-var db = require('mongodb').Db;
-var server = require('mongodb').Server;
 var jsontoxml = require('jsontoxml');
+
+//exports.dbname = "mongodb://admin:XP9jx78hpWkq@127.4.84.129:27017/api";
+//exports.dbname = 'mongodb://testuser:testpassword@localhost/test';
+exports.dbname = 'mongodb://localhost/test';
 
 /*TODO: should we have statuscode ? */
 exports.meta = function(message_type) {
@@ -147,19 +149,24 @@ exports.get_password = function(req) {
 exports.info = function(req, res, result) {
     /*TODO: default to json one day */
     if(req.query.format &&(req.query.format == 'json')) {
-        res.send(result);
+        /*make the head plain for web view */
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end(JSON.stringify(result));
     } else {
         var str = JSON.stringify (result);
         var r = JSON.parse (str);
-        res.send(jsontoxml.obj_to_xml(r, true));
+        res.writeHead(200, {'Content-Type': 'text/xml'});
+        res.end(jsontoxml.obj_to_xml(r, true));
     }
 }
 
 exports.message = function(req, res, msg) {
     var result = {"ocs": {"meta": exports.meta(msg)}};
     if(req.query.format && (req.query.format == 'json')) {
-        res.send(result);
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end(JSON.stringify(result));
     } else {
-        res.send(jsontoxml.obj_to_xml(result, true));
+        res.writeHead(200, {'Content-Type': 'text/xml'});
+        res.end(jsontoxml.obj_to_xml(result, true));
     }
 }

@@ -64,7 +64,7 @@ var contentSchema = new Schema({
 });
 
 /*TODO: disconnect it ?  or keep it ? */
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect(utils.dbname);
 var contentModel = mongoose.model('content', contentSchema);
 var categoryModel = mongoose.model('category', categorySchema);
 
