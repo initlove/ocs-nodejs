@@ -8,7 +8,7 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var downloadDetailSchema = new Schema({
-    downloadway: Number
+    downloadway: {type: Number, default: 0}
     ,downloadtype: String
     ,downloadprice: Number
     ,downloadlink: String
@@ -20,27 +20,17 @@ var downloadDetailSchema = new Schema({
     ,downloadrepository: String
 });
 
-var homepageDetailSchema = new Schema({
-    homepageurl: String
-    ,homepagetype: String
-});
-
 var categorySchema = new Schema({
     name: String
 });
 
 var contentSchema = new Schema({
     name: {type: String, required: true}
-    ,type: String
-    ,typeid: String
-    ,typename: String
     ,language: String
-    ,personid: String
+    ,personid: {type: String, required: true}
     ,depend: String
     ,description: String
     ,summary: String
-    ,licensetype: String
-    ,license: String
     ,feedbackurl: String
     ,version: String
     ,changelog: String
@@ -48,6 +38,7 @@ var contentSchema = new Schema({
     ,donationreason: String
     ,osbsproject: String
     ,osbspackage: String
+
     ,score: {type: Number, default:50}
     ,comments: {type: Number, default: 0}
     ,fans: {type: Number, default: 0}
@@ -55,58 +46,170 @@ var contentSchema = new Schema({
     ,created: {type: Date, default: Date.now}
     ,changed: Date
 
+/* download and homepage, my design is, we have only one */
     ,download: {type: [downloadDetailSchema], default:[]}
-    ,homepage: {type: [homepageDetailSchema], default:[]}
+    ,homepage: {type: [String], default:[]}
+    ,category: {type: [String], default:[]}
+    ,distribution: {type: [String], default:[]}
+    ,license: {type: [String], default:[]}
     ,smallpreview: {type: [String], default:[]}
     ,preview: {type: [String], default:[]}
     ,icon: {type: [String], default:[]}
     ,video: {type: [String], default:[]}
+
+/* inner prop */
+/* status: 'in censor', 'online', 'offline' */
+    ,status: {type: String, default: "in censor"}
+/* uid is the md5 of repo + name, repo end with '/' */
+    ,uid: {type: String, unique: true}
 });
 
 /*TODO: disconnect it ?  or keep it ? */
 mongoose.connect(utils.dbname);
 var contentModel = mongoose.model('content', contentSchema);
-var categoryModel = mongoose.model('category', categorySchema);
+var downloadModel = mongoose.model('download', downloadDetailSchema);
 
-exports.add = function(req, res) {
-    if (!req.body.name || !req.body.type) {
-        utils.message(req, res, "please specify all mandatory fields");
-        return;
-    }
+exports.add_content = function(doc, callback) {
     var content = new contentModel();
-    content.name = req.body.name;
-    content.type = req.body.type;
-    if (req.body.language)
-        content.language = req.body.language;
-    if (req.body.personid)
-        content.personid = req.body.personid;
-    if (req.body.depend)
-        content.depend = req.body.depend;
-    if (req.body.description)
-        content.description = req.body.description;
-    if (req.body.summary)
-        content.summary = req.body.summary;
-    if (req.body.license)
-        content.license = req.body.license;
-    if (req.body.licensetype)
-        content.licensetype = req.body.licensetype;
-    if (req.body.feedbackurl)
-        content.feedbackurl = req.body.feedbackurl;
-    if (req.body.version)
-        content.version = req.body.version;
-    if (req.body.changelog)
-        content.changelog = req.body.changelog;
+    content.name = doc.name;
 
+    for(var key in doc) {
+        if (key == 'download') {
+            /*TODO: doc to schema? */
+            var download = new downloadModel();
+            for (var download_key in doc.download[0]) {
+                download[download_key] = doc.download[0][download_key];
+            }
+            content.download.push(download);
+        } else {
+            content[key] = doc[key];
+        }
+    }
+    var crypto = require('crypto');
+    var str = doc.download[0].downloadrepository;
+    if (str[str.length-1] != '/')
+        str += '/';
+    content.uid = crypto.createHash('md5').update(str+doc.download[0].downloadname).digest("hex");
     content.save(function(err){
         if (err) {
-            utils.message(req, res, "Server error");
+            callback(false, err.toString());
         } else {
-            utils.message(req, res, "ok");
+            callback(true, "ok");
         }
     });
 }
 
+exports.add = function(req, res) {
+    /* The body.type is defined in ocs, 
+     * it will be set to category in the inner implementation
+     */
+    if (!req.body.name || !req.body.type) {
+        utils.message(req, res, "please specify all mandatory fields");
+        return;
+    }
+    var doc = {};
+    doc.name = req.body.name;
+    doc.personid = utils.get_username(req);
+    if (req.body.language)
+        doc.language = req.body.language;
+    if (req.body.depend)
+        doc.depend = req.body.depend;
+    if (req.body.description)
+        doc.description = req.body.description;
+    if (req.body.summary)
+        doc.summary = req.body.summary;
+    if (req.body.feedbackurl)
+        doc.feedbackurl = req.body.feedbackurl;
+    if (req.body.version)
+        doc.version = req.body.version;
+    if (req.body.changelog)
+        doc.changelog = req.body.changelog;
+    
+    doc.category = req.body.type.split(";");
+    /*TODO: better way to get serveral downloads? defined in ocs? */
+    var download = {};
+    doc.download = [];
+    if (req.body.downloadway)
+        download.downloadway = req.body.downloadway;
+    if (req.body.downloadtype)
+        download.downloadtype = req.body.downloadtype;
+    if (req.body.downloadprice)
+        download.downloadprice = req.body.downloadprice;
+    if (req.body.downloadlink)
+        download.downloadlink = req.body.downloadlink;
+    if (req.body.downloadname)
+        download.downloadname = req.body.downloadname;
+    if (req.body.downloadsize)
+        download.downloadsize = req.body.downloadsize;
+    if (req.body.downloadfingerprint)
+        download.downloadfingerprint = req.body.downloadfingerprint;
+    if (req.body.downloadsignature)
+        download.downloadsignature = req.body.downloadsignature;
+    if (req.body.downloadpackagename)
+        download.downloadpackagename = req.body.downloadpackagename;
+    if (req.body.downloadrepository)
+        download.downloadrepository = req.body.downloadrepository;
+    doc.download.push(download);
+
+    if (req.body.homepage)
+        doc.homepage = req.body.homepage.split(";");
+    if (req.body.distribution)
+        doc.distribution = req.body.distribution.split(";");
+    if (req.body.license)
+        doc.license = req.body.license.split(";");
+    if (req.body.smallpreview)
+        doc.smallpreview = req.body.smallpreview.split(";");
+    if (req.body.preview)
+        doc.preview = req.body.preview.split(";");
+    if (req.body.icon)
+        doc.icon = req.body.icon.split(";");
+    if (req.body.video)
+        doc.video = req.body.video.split(";");
+
+    exports.add_content(doc, function(r, msg) {
+        utils.message(req, res, msg);
+    });
+}
+
+/*TODO: not ocs compatable */
 function publish_content(doc) {
+    var content = { id: doc._id};
+    var keys = ['name', 'language', 'personid',
+                'depend', 'description', 'summary',
+                'feedbackurl', 'version', 'changelog',
+                'donation', 'donationreason',
+                'score', 'comments', 'fans', 'downloads',
+                'created', 'changed'];
+
+    for (var i = 0; i < keys.length; i++) {
+        if (doc[keys[i]]) {
+            content[keys[i]] = doc[keys[i]];
+        }
+    }
+
+    var list_keys = ['homepage', 'category', 'distribution', 'license',
+                'smallpreview', 'preview', 'icon', 'video'];
+    for (var i = 0; i < list_keys.length; i++) {
+        if (doc[list_keys[i]]) {
+            content[list_keys[i]] = doc[list_keys[i]];
+        }
+    }
+
+    var download_keys = ['downloadtype', 'downloadprice', 'downloadname',
+                'downloadsize', 'downloadfingerprint', 'downloadsignature'];
+    var download = {};
+    var d0 = download[0];
+    content.download = [];
+    for (var i = 0; i < download_keys.length; i++) {
+        if (d0[download_keys[i])
+            download[download_keys[i]] = d0[download_keys[i]];
+    }
+    content.download.push(download);
+
+    return content;
+};
+
+function ocs_publish_content(doc) {
     var content = { id: doc._id,
                     name: doc.name,
                     type: doc.type,
@@ -174,7 +277,8 @@ exports.list = function(req, res) {
     if (req.query.pagesize)
         pagesize = parseInt(req.query.pagesize);
 
-    var query = {};
+    /* list the online packages */
+    var query = {status: 'online'};
     if (req.query.search) {
         query.$or = new Array();
         query.$or[0] = {"name" : new RegExp(req.query.search, 'i')};
@@ -198,13 +302,13 @@ exports.list = function(req, res) {
     }
     contentModel.count(query, function(err, count) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error "+err);
             console.log(err);
         } else {
             if (count > page*pagesize) {
                 contentModel.find(query).asc(sort_filed).skip(page*pagesize).limit(pagesize).exec(function(err, docs) {
                     if (err) {
-                        utils.message(req, res, "Server error");
+                        utils.message(req, res, "Server error "+err);
                         console.log(err);
                     } else {
                         var meta = {"status": "ok", "statuscode": 100,
@@ -231,7 +335,7 @@ exports.get = function(req, res) {
     var id = req.params.contentid;
     contentModel.findOne({_id: id}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error: "+err);
         } else if (doc) {
             var meta = {"status": "ok", "statuscode": 100};
             var data = new Array();
@@ -247,7 +351,7 @@ exports.get = function(req, res) {
 exports.categories = function(req, res) {
     categoryModel.find({}, function(err, docs) {
         if (err) {
-            utils.message(req, res, "Server error");
+            utils.message(req, res, "Server error: "+err);
         } else {
             var meta = {"status": "ok", "statuscode": 100};
             var data = new Array();
@@ -262,17 +366,16 @@ exports.categories = function(req, res) {
 /*TODO: if someone download it already, donnot charge it? 
  * add the download -map for all the user?
  */
-exports.download = function(req, res) {
-    var id = req.params.contentid;
+function content_download (id, itemid, callback) {
     contentModel.findOne({_id: id}, function(err, doc) {
         if (err) {
-            utils.message(req, res, "Server error");
+            return callback(false, "Server error: "+err);
         } else if (doc) {
             for(var i = 0; doc.download[i]; i++) {
-                if (doc.download[i].downloadway == req.params.itemid) {
+                if (doc.download[i].downloadway == itemid) {
                     contentModel.update({_id : id}, {$inc: {"downloads" :1}}, function(err) {
                         if (err) {
-                            utils.message(req, res, "Server error");
+                            return callback(false, "Server error: "+err);
                         } else {
                             var meta = {"status": "ok", "statuscode": 100};
                             var data = new Array();
@@ -287,15 +390,38 @@ exports.download = function(req, res) {
                                             }
                                         };
                             var result = {"ocs": {"meta": meta, "data": data}};
-                            utils.info(req, res, result);
+                            return callback(true, result);
                         }
                     });
-                    return;
                 }
             }
-            utils.message(req, res, "content item not found");
+            return callback(false, "content item not found");
         } else {
-            utils.message(req, res, "content not found");
+            return callback(false, "content not found");
+        }
+    });
+};
+
+exports.download_default = function(req, res) {
+    var id = req.params.contentid;
+    var itemid = 0;
+    content_download(id, itemid, function(r, result) {
+        if (r) {
+            utils.info(req, res, result);
+        } else {
+            utils.message(req, res, result);
+        }
+    });
+};
+
+exports.download = function(req, res) {
+    var id = req.params.contentid;
+    var itemid = req.params.itemid;
+    content_download(id, itemid, function(r, result) {
+        if (r) {
+            utils.info(req, res, result);
+        } else {
+            utils.message(req, res, result);
         }
     });
 };

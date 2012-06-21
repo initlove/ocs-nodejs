@@ -1,0 +1,7 @@
+test script for the services!
+
+1. provide some fake apps and icons
+2. provide some fake users
+
+ocs> help -- list all the support services
+ocs> content_get -- get the demo content infos

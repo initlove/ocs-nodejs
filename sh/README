@@ -1,8 +1,6 @@
-test script for the services!
-
-1. in compose: push.js to init the contents
-2. person_add person_add1 to init the users.
-3. edit the services.js, change the contentid and comment id
-
-ocs> help -- list all the support services
-ocs> content_get -- get the demo content infos
+1. define the root user
+2. define something like the port, the hostname?
+3. add the icons, make the stock server
+    the icons were collected from most rpms
+   so in the compose server, we will check if the icons were existed.
+    thus make compose process faster.

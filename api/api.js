@@ -104,6 +104,7 @@ app.get('/content/data', content.list);
 app.get('/content/categories', content.categories);
 app.get('/content/data/:contentid', content.get);
 app.get('/content/download/:contentid/:itemid', content.download);
+app.get('/content/download/:contentid', content.download_default);
 app.post('/content/vote/:contentid', function(req, res) {
     account.authenticate(req, res, content.vote);
 });
@@ -144,8 +145,11 @@ app.post('/:urlmd5/vote', function(req, res) {
     account.authenticate(req, res, vote.vote);
 });
 
+/*
 app.post('/:urlmd5/comment', function(req, res) {
     account.authenticate(req, res, comment.add);
 });
+*/
+app.post('/:urlmd5/comment', comment.add);
 app.get('/:urlmd5/comment', comment.get);
 

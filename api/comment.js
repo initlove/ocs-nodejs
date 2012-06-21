@@ -153,6 +153,7 @@ exports.getcomment = function(req, url, callback) {
 
 exports.get = function(req, res) {
     var url = req.params.urlmd5;
+console.log(url);
     exports.getcomment(req, url, function(result, msg) {
         if (result) {
             utils.info(req, res, result);

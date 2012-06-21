@@ -11,13 +11,13 @@ this is the time to make a release!
 ocs implement on nodejs.
 
 ocs-nodejs 
+|--admin    -- admin the user/ admin the app, 'consor'
+|--price    -- important interface, but donnot know how to do it ... 
 |--compose  --  compose server 
-|--sh		--  the bash used to test every implement and init the database
+|--sh		--  the bash used to init the database
+|--demo     --  demo, add the fake apps, icons, users
 |--design	--  the design of each service
 |--index.js	--  begining
 |--service	--  all services implementation
-|--test		--  demo server, can split to several servers(js) for testing
-|		 	for example, comment.js, content..
-|		    curl_command, the way to test the server.
-                fuzzy script, to learn nodejs or js
+|--test		--  js learning... should be removed
 |--third-party  --  mongodb for linux32, because it's very slow to download it from the server

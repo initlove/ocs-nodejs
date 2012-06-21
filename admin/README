@@ -1,0 +1,11 @@
+We need a bounch of admin apis.
+Including:
+1. user manage : add/remove modify..
+2. compose (which is implement in the ../compose dir)
+3. app consor.  change it to online to make it visible to all customers.
+4. app offline,  due to some reason, put the goods offline
+
+user:
+1.root -- inited
+2.admin -- added by root 
+3.normal
