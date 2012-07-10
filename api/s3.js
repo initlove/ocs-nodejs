@@ -87,6 +87,7 @@ exports.get_info = function(req, res) {
             } else if (stats.isFile()) {
                 val.type = "file";
             }
+            val.size = stats.size;
         }
         utils.info(req, res, val);
     });
@@ -95,7 +96,6 @@ exports.get_info = function(req, res) {
 exports.add_dir = function(req, res) {
     //trick. curl seems not good with both upload and body info
     var url = '';
-    console.log(req);
     if (req.query.url)
         url = req.query.url;
     else
@@ -110,6 +110,103 @@ exports.add_dir = function(req, res) {
     }
     var real_url = path.join(default_cache, url);
     fs.mkdir(real_url, function(err) {
+        if (err) {
+            val.status = "fail";
+            console.log(err);
+            val.errno = err.errno;
+            utils.info(req, res, val);
+        } else {
+            val.status = "ok";
+            utils.info(req, res, val);
+        }
+    });
+};
+
+exports.remove_dir = function(req, res) {
+    //trick. curl seems not good with both upload and body info
+    var url = '';
+    console.log(req);
+    if (req.query.url)
+        url = req.query.url;
+    else
+        url = req.body.url;
+    console.log ('remove dir ' + url);
+    var val = {};
+    if (!url) {
+        val.status = "fail";
+        val.message = "define the url first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    fs.rmdir(real_url, function(err) {
+        if (err) {
+            val.status = "fail";
+            console.log(err);
+            val.errno = err.errno;
+            utils.info(req, res, val);
+        } else {
+            val.status = "ok";
+            utils.info(req, res, val);
+        }
+    });
+};
+
+exports.rename_file = function(req, res) {
+    var from = '';
+    var to = '';
+
+    console.log(req);
+    if (req.query.from)
+        from = req.query.from;
+    else
+        from = req.body.from;
+
+    if (req.query.to)
+        to = req.query.to;
+    else
+        to = req.body.to;
+
+    var val = {};
+    if (!from || !to) {
+        val.status = "fail";
+        val.message = "define from and to first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_from = path.join(default_cache, from);
+    var real_to = path.join(default_cache, to);
+    fs.rename(real_from, real_to, function(err) {
+        if (err) {
+            val.status = "fail";
+            console.log(err);
+            val.errno = err.errno;
+            utils.info(req, res, val);
+        } else {
+            val.status = "ok";
+            utils.info(req, res, val);
+        }
+    });
+};
+
+exports.remove_file = function(req, res) {
+    //trick. curl seems not good with both upload and body info
+    var url = '';
+    console.log(req);
+    if (req.query.url)
+        url = req.query.url;
+    else
+        url = req.body.url;
+    console.log ('remove file ' + url);
+    var val = {};
+    if (!url) {
+        val.status = "fail";
+        val.message = "define the url first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    fs.unlink (real_url, function(err) {
         if (err) {
             val.status = "fail";
             console.log(err);
