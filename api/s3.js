@@ -220,7 +220,6 @@ exports.remove_file = function(req, res) {
 };
 
 exports.truncate = function(req, res) {
-console.log('truncate is ');
     var url = '';
     if (req.query.url)
         url = req.query.url;
@@ -237,6 +236,7 @@ console.log('truncate is ');
     var real_url = path.join(default_cache, url);
     var size = req.body.size;
     
+console.log('truncate is ' + real_url);
     fs.open(real_url, "w", function(err, fd) {
 	if (err) {
 	    val.status = "error";
@@ -253,6 +253,40 @@ console.log('truncate is ');
 		utils.info(req, res, val);
 	    });
 	}
+    });
+};
+
+exports.link = function(req, res) {
+    var from = '';
+    if (req.query.from)
+        from = req.query.from;
+    else if (req.body.from)
+        from = req.body.from;
+
+    var to = '';
+    if (req.query.to)
+        to = req.query.to;
+    else if (req.body.to)
+        to = req.body.to;
+
+    var val = {};
+    if (!from || !to) {
+        val.status = "error";
+        val.message = "Define from and to first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_from = path.join(default_cache, from);
+    var real_to = path.join(default_cache, to);
+    
+    fs.link(real_from, real_to, function(err, fd) {
+	    if (err) {
+        	val.status = "error";
+		val.errno = err.errno;
+	    } else {
+		val.status = "ok";
+	    }
+        utils.info(req, res, val);
     });
 };
 
