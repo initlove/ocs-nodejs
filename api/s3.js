@@ -64,7 +64,7 @@ exports.get = function(req, res) {
 };
 
 exports.get_info = function(req, res) {
-    console.log('get info ' + req.query.url);
+   // console.log('get info ' + req.query.url);
     var url = req.query.url;
     var val = {};
 
@@ -219,6 +219,114 @@ exports.remove_file = function(req, res) {
     });
 };
 
+exports.truncate = function(req, res) {
+console.log('truncate is ');
+    var url = '';
+    if (req.query.url)
+        url = req.query.url;
+    else if (req.body.url)
+        url = req.body.url;
+
+    var val = {};
+    if (!url) {
+        val.status = "error";
+        val.message = "Define url first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    var size = req.body.size;
+    
+    fs.open(real_url, "w", function(err, fd) {
+	if (err) {
+	    val.status = "error";
+	    val.errno = err.errno;
+	    utils.info(req, res, val);
+	} else {
+	    fs.truncate(fd, parseInt(size), function(err) {
+		if (err) {
+	    	    val.status = "error";
+ 		    val.errno = err.errno;
+		} else {
+		    val.status = "ok";
+		}
+		utils.info(req, res, val);
+	    });
+	}
+    });
+};
+
+exports.mknod = function(req, res) {
+    var url = '';
+    if (req.query.url)
+        url = req.query.url;
+    else if (req.body.url)
+        url = req.body.url;
+
+    var val = {};
+    if (!url) {
+        val.status = "error";
+        val.message = "Define url first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    fs.open(real_url, "w", function(err, fd) {
+	    if (err) {
+        	val.status = "error";
+		val.errno = err.errno;
+	    } else {
+		val.status = "ok";
+	    	fs.close(fd);
+	    }
+        utils.info(req, res, val);
+    });
+};
+
+exports.add_data = function(req, res) {
+	//FIXME: I donnot know how to use rest_*upload ...
+    console.log("add data");
+    var url = '';
+    if (req.query.url)
+        url = req.query.url;
+    else if (req.body.url)
+        url = req.body.url;
+
+    var val = {};
+    if (!url) {
+        val.status = "error";
+        val.message = "Define url first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    var data = req.body.data;
+    var size = req.body.size;
+    var offset = req.body.offset;
+    var orig = new Buffer(data, 'base64');
+
+    fs.open(real_url, "r+", function(err, fd) {
+	if (err) {
+	    val.status = "error";
+	    val.errno = err.errno;
+	    utils.info(req, res, val);
+	} else {
+   	    fs.write(fd, orig, 0, parseInt(size), parseInt(offset), function(err, write_val) {
+//console.log ("write " + 'size  ' + size + ' off ' + offset);
+	        if (err) {
+		    val.status = "error";
+		    val.errno = err.errno;
+	        } else {
+		    val.status = "ok";
+		    val.size = write_val;
+		}
+	        fs.closeSync(fd);
+		utils.info(req, res, val);
+	    });
+	}
+    });
+};
+
 exports.add = function(req, res) {
     var url = '';
     if (req.query.url)
@@ -235,7 +343,6 @@ exports.add = function(req, res) {
     }
     //TODO: check, if the url is dir, we add file to that dir
     var real_url = path.join(default_cache, url);
-
     console.log('\nuploaded %s %s'
                 ,  req.files.upload.filename
                 ,  req.files.upload.path);
