@@ -94,12 +94,7 @@ exports.get_info = function(req, res) {
 };
 
 exports.add_dir = function(req, res) {
-    //trick. curl seems not good with both upload and body info
-    var url = '';
-    if (req.query.url)
-        url = req.query.url;
-    else
-        url = req.body.url;
+    var url = req.body.url;
     console.log ('add dir ' + url);
     var val = {};
     if (!url) {
@@ -123,13 +118,7 @@ exports.add_dir = function(req, res) {
 };
 
 exports.remove_dir = function(req, res) {
-    //trick. curl seems not good with both upload and body info
-    var url = '';
-    console.log(req);
-    if (req.query.url)
-        url = req.query.url;
-    else
-        url = req.body.url;
+    var url = req.body.url;
     console.log ('remove dir ' + url);
     var val = {};
     if (!url) {
@@ -153,19 +142,8 @@ exports.remove_dir = function(req, res) {
 };
 
 exports.rename_file = function(req, res) {
-    var from = '';
-    var to = '';
-
-    console.log(req);
-    if (req.query.from)
-        from = req.query.from;
-    else
-        from = req.body.from;
-
-    if (req.query.to)
-        to = req.query.to;
-    else
-        to = req.body.to;
+    var from = req.body.from;
+    var to = req.body.to;
 
     var val = {};
     if (!from || !to) {
@@ -191,12 +169,7 @@ exports.rename_file = function(req, res) {
 
 exports.remove_file = function(req, res) {
     //trick. curl seems not good with both upload and body info
-    var url = '';
-    console.log(req);
-    if (req.query.url)
-        url = req.query.url;
-    else
-        url = req.body.url;
+    var url = req.body.url;
     console.log ('remove file ' + url);
     var val = {};
     if (!url) {
@@ -220,11 +193,7 @@ exports.remove_file = function(req, res) {
 };
 
 exports.truncate = function(req, res) {
-    var url = '';
-    if (req.query.url)
-        url = req.query.url;
-    else if (req.body.url)
-        url = req.body.url;
+    var url = req.body.url;
 
     var val = {};
     if (!url) {
@@ -238,36 +207,94 @@ exports.truncate = function(req, res) {
     
 console.log('truncate is ' + real_url);
     fs.open(real_url, "w", function(err, fd) {
-	if (err) {
-	    val.status = "error";
-	    val.errno = err.errno;
-	    utils.info(req, res, val);
-	} else {
-	    fs.truncate(fd, parseInt(size), function(err) {
 		if (err) {
-	    	    val.status = "error";
- 		    val.errno = err.errno;
+	    	val.status = "error";
+		    val.errno = err.errno;
+		    utils.info(req, res, val);
 		} else {
-		    val.status = "ok";
+		    fs.truncate(fd, parseInt(size), function(err) {
+				if (err) {
+    			    val.status = "error";
+		    		val.errno = err.errno;
+				} else {
+				    val.status = "ok";
+				}
+				utils.info(req, res, val);
+	    	});
 		}
-		utils.info(req, res, val);
-	    });
-	}
+    });
+};
+
+exports.read_link = function(req, res) {
+	var url = req.body.url;
+	var size = req.body.size;
+	var val = {};
+
+    if (!url || !size) {
+        val.status = "error";
+        val.message = "Define from and to first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+	fs.readlink(real_url, function(err, linkString) {
+		if (err) {
+        	val.status = "error";
+			val.errno = err.errno;
+        	utils.info(req, res, val);
+	    } else {
+				//FIXME: not done 
+            res.writeHead(200, {'Content-Type': mime.lookup(url)});
+            res.end(linkString);
+	    }
+	});
+};
+
+exports.access = function(req, res) {
+	var url = req.body.url;
+	var mode = req.body.mode;
+	var val = {};
+    if (!url || !mode) {
+        val.status = "error";
+        val.message = "Define from and to first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+
+	//FIXME: any relevant access nodejs 
+        val.status = "ok";
+        utils.info(req, res, val);
+};
+
+exports.symlink = function(req, res) {
+    var from = req.body.from;
+    var to = req.body.to;
+
+    var val = {};
+    if (!from || !to) {
+        val.status = "error";
+        val.message = "Define from and to first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_from = path.join(default_cache, from);
+    var real_to = path.join(default_cache, to);
+    
+    fs.symlink(real_from, real_to, function(err, fd) {
+	    if (err) {
+        	val.status = "error";
+			val.errno = err.errno;
+	    } else {
+			val.status = "ok";
+	    }
+        utils.info(req, res, val);
     });
 };
 
 exports.link = function(req, res) {
-    var from = '';
-    if (req.query.from)
-        from = req.query.from;
-    else if (req.body.from)
-        from = req.body.from;
-
-    var to = '';
-    if (req.query.to)
-        to = req.query.to;
-    else if (req.body.to)
-        to = req.body.to;
+    var from = req.body.from;
+    var to = req.body.to;
 
     var val = {};
     if (!from || !to) {
@@ -282,6 +309,55 @@ exports.link = function(req, res) {
     fs.link(real_from, real_to, function(err, fd) {
 	    if (err) {
         	val.status = "error";
+			val.errno = err.errno;
+	    } else {
+			val.status = "ok";
+	    }
+        utils.info(req, res, val);
+    });
+};
+
+exports.chmod = function(req, res) {
+    var url = req.body.url;
+    var mode = req.body.mode;
+
+    var val = {};
+    if (!url || !mode) {
+        val.status = "error";
+        val.message = "Define url and mode first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    
+    fs.chmod(real_url, parseInt(mode), function(err) {
+	    if (err) {
+        	val.status = "error";
+		val.errno = err.errno;
+	    } else {
+		val.status = "ok";
+	    }
+        utils.info(req, res, val);
+    });
+};
+
+exports.chown = function(req, res) {
+    var url = req.body.url;
+    var uid = req.body.uid;
+    var gid = req.body.gid;
+
+    var val = {};
+    if (!url || !uid || !gid) {
+        val.status = "error";
+        val.message = "Define url and uid and gid first";
+        utils.info(req, res, val);
+        return;
+    }
+    var real_url = path.join(default_cache, url);
+    
+    fs.chown(real_url, parseInt(uid), parseInt(gid), function(err) {
+	    if (err) {
+        	val.status = "error";
 		val.errno = err.errno;
 	    } else {
 		val.status = "ok";
@@ -291,11 +367,7 @@ exports.link = function(req, res) {
 };
 
 exports.mknod = function(req, res) {
-    var url = '';
-    if (req.query.url)
-        url = req.query.url;
-    else if (req.body.url)
-        url = req.body.url;
+    var url = req.body.url;
 
     var val = {};
     if (!url) {
@@ -319,24 +391,21 @@ exports.mknod = function(req, res) {
 
 exports.add_data = function(req, res) {
 	//FIXME: I donnot know how to use rest_*upload ...
+	//check data size ..
     console.log("add data");
-    var url = '';
-    if (req.query.url)
-        url = req.query.url;
-    else if (req.body.url)
-        url = req.body.url;
+    var url = req.body.url;
 
     var val = {};
-    if (!url) {
-        val.status = "error";
-        val.message = "Define url first";
-        utils.info(req, res, val);
-        return;
-    }
     var real_url = path.join(default_cache, url);
     var data = req.body.data;
     var size = req.body.size;
     var offset = req.body.offset;
+    if (!url || !data || !size || !offset) {
+        val.status = "error";
+        val.message = "Define url and data and size and offset first";
+        utils.info(req, res, val);
+        return;
+    }
     var orig = new Buffer(data, 'base64');
 
     fs.open(real_url, "r+", function(err, fd) {
