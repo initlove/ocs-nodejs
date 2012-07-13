@@ -6,6 +6,50 @@ var utils = require('./utils');
 
 var default_cache = "/data/s3/";
 
+function home_dir_valid(username, callback) { 
+	var homedir = path.join(default_cache, username);
+	console.log(homedir);
+    fs.stat(homedir, function (err, stats) {
+        if (err) {
+			fs.mkdir(homedir, function(err) {
+				if (err) {
+					return callback(null, err);
+				} else {
+					return callback(homedir);
+				}
+			});
+        } else {
+            if (stats.isDirectory()) {
+				return callback(homedir);
+            } else {
+				fs.unlink(homedir, function(err) {
+					if (err) {
+						return callback(null, err);
+					} else {
+						fs.mkdir(homedir, function(err) {
+							if (err) {
+								return callback(null, err);
+							} else {
+								return callback(homedir);
+							}
+						});
+					}
+				});
+            }
+        }
+    });
+}
+
+function get_real_url (req, url) {
+	var username = utils.get_username (req);
+	if (!username) {
+		console.log ("Cannot get user's name");
+		return null;
+	}
+
+	return path.join(default_cache, username, url);
+};
+
 function get_dir(req, res, url) {
     console.log('get dir'+ url);
     fs.readdir(url, function(err, files) {
@@ -45,22 +89,27 @@ exports.get = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+		val.status = "fail";
+		val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
 
     fs.stat(real_url, function (err, stats) {
-        if (err) {
-            var val = {};
-            val.status = "error";
-            val.errno = err.errno;
+       	if (err) {
+	        val.status = "error";
+    	    val.errno = err.errno;
             utils.info(req, res, val);
-        } else {
-            if (stats.isDirectory()) {
-                get_dir(req, res, real_url);
-            } else if (stats.isFile()) {
-                get_file(req, res, real_url);
-            }
-        }
-    });
+	    } else {
+    	    if (stats.isDirectory()) {
+				get_dir(req, res, real_url);
+			} else if (stats.isFile()) {
+               	get_file(req, res, real_url);
+			}
+	    }
+	});
 };
 
 exports.get_info = function(req, res) {
@@ -74,8 +123,13 @@ exports.get_info = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
-
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     fs.stat(real_url, function (err, stats) {
         if (err) {
             val.status = "error";
@@ -103,7 +157,13 @@ exports.add_dir = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     fs.mkdir(real_url, function(err) {
         if (err) {
             val.status = "fail";
@@ -127,7 +187,13 @@ exports.remove_dir = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     fs.rmdir(real_url, function(err) {
         if (err) {
             val.status = "fail";
@@ -152,8 +218,14 @@ exports.rename_file = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_from = path.join(default_cache, from);
-    var real_to = path.join(default_cache, to);
+    var real_from = get_real_url(req, url);
+    var real_to = get_real_url(req, url);
+	if (!real_url || !real_to) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     fs.rename(real_from, real_to, function(err) {
         if (err) {
             val.status = "fail";
@@ -178,7 +250,13 @@ exports.remove_file = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     fs.unlink (real_url, function(err) {
         if (err) {
             val.status = "fail";
@@ -202,7 +280,13 @@ exports.truncate = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     var size = req.body.size;
     
 console.log('truncate is ' + real_url);
@@ -236,7 +320,13 @@ exports.read_link = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
 	fs.readlink(real_url, function(err, linkString) {
 		if (err) {
         	val.status = "error";
@@ -260,7 +350,13 @@ exports.access = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
 
 	//FIXME: any relevant access nodejs 
         val.status = "ok";
@@ -278,8 +374,14 @@ exports.symlink = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_from = path.join(default_cache, from);
-    var real_to = path.join(default_cache, to);
+    var real_from = get_real_url(req, url);
+    var real_to = get_real_url(req, url);
+	if (!real_from || !real_to) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     
     fs.symlink(real_from, real_to, function(err, fd) {
 	    if (err) {
@@ -303,8 +405,14 @@ exports.link = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_from = path.join(default_cache, from);
-    var real_to = path.join(default_cache, to);
+    var real_from = get_real_url(req, url);
+    var real_to = get_real_url(req, url);
+	if (!real_from || !real_to) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	};
     
     fs.link(real_from, real_to, function(err, fd) {
 	    if (err) {
@@ -328,7 +436,13 @@ exports.chmod = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     
     fs.chmod(real_url, parseInt(mode), function(err) {
 	    if (err) {
@@ -353,7 +467,13 @@ exports.chown = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     
     fs.chown(real_url, parseInt(uid), parseInt(gid), function(err) {
 	    if (err) {
@@ -376,7 +496,13 @@ exports.mknod = function(req, res) {
         utils.info(req, res, val);
         return;
     }
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     fs.open(real_url, "w", function(err, fd) {
 	    if (err) {
         	val.status = "error";
@@ -397,6 +523,12 @@ exports.add_data = function(req, res) {
 
     var val = {};
     var real_url = path.join(default_cache, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     var data = req.body.data;
     var size = req.body.size;
     var offset = req.body.offset;
@@ -445,7 +577,13 @@ exports.add = function(req, res) {
         return;
     }
     //TODO: check, if the url is dir, we add file to that dir
-    var real_url = path.join(default_cache, url);
+    var real_url = get_real_url(req, url);
+	if (!real_url) {
+        val.status = "fail";
+        val.errno = -1;
+		utils.info(req, res, val);
+		return ;
+	}
     console.log('\nuploaded %s %s'
                 ,  req.files.upload.filename
                 ,  req.files.upload.path);
